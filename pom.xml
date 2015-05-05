@@ -22,7 +22,7 @@
     
     <groupId>eu.trentorise.opendata.josman</groupId>
     <artifactId>josman-maven-plugin</artifactId>
-    <version>0.6.1</version>
+    <version>0.6.2-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
     
     
