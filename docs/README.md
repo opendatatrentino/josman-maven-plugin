@@ -67,3 +67,9 @@ To ignore some version, you can use `ignoredVersions`:
 ### Sending site to Github
 
 A good companion to Josman is <a href="https://github.github.com/maven-plugins/site-plugin/" target="_blank"> GitHub Site Plugin</a> that allows sending the generated website to origin repository in the gh-pages branch, so that it will be served by Github on `myorganization.github.io/myrepo` urls.
+
+To send website:
+
+```
+mvn com.github.github:site-maven-plugin:site
+```
