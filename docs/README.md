@@ -34,6 +34,12 @@ You can then invoke the plugin by calling the goal site:
 This will generate a website with documentation for all the released versions you have. It will not consider current snapshot, so if you just want to test how the website will look like for the current snapshot, use `snapshot` flag:
 
 ```
+mvn josman:site -Dsite.snapshot=true
+```
+
+Or in `pom.xml`  configuration: 
+
+```
             <plugin>
                 <groupId>eu.trentorise.opendata.josman</groupId>
                 <artifactId>josman-maven-plugin</artifactId>                

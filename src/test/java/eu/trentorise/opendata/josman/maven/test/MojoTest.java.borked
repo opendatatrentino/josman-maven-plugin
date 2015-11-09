@@ -17,7 +17,7 @@ package eu.trentorise.opendata.josman.maven.test;
 
 
 
-import eu.trentorise.opendata.commons.OdtConfig;
+import eu.trentorise.opendata.commons.TodConfig;
 import eu.trentorise.opendata.josman.maven.SiteMojo;
 import java.io.File;
 import java.util.logging.Logger;
@@ -43,7 +43,7 @@ public class MojoTest extends AbstractMojoTestCase {
 
     @BeforeClass
     public static void beforeClass() {
-        OdtConfig.init(MojoTest.class);
+        TodConfig.init(MojoTest.class);
     }
 
     /**

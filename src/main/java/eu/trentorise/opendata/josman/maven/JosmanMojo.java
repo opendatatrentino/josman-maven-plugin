@@ -15,7 +15,7 @@
  */
 package eu.trentorise.opendata.josman.maven;
 
-import static eu.trentorise.opendata.commons.OdtUtils.checkNotEmpty;
+import static eu.trentorise.opendata.commons.TodUtils.checkNotEmpty;
 import eu.trentorise.opendata.commons.SemVersion;
 import eu.trentorise.opendata.josman.JosmanProject;
 import java.io.File;
@@ -112,7 +112,7 @@ public abstract class JosmanMojo extends AbstractMojo {
 
         checkNotEmpty(projectUrl, "project url is invalid!");
 
-        //https://github.com/opendatatrentino/odt-commons
+        //https://github.com/opendatatrentino/tod-commons
         String stripGithub = projectUrl.substring("https://github.com/".length());
 
         String repoOrganization = stripGithub.substring(0, stripGithub.indexOf("/"));

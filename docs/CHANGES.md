@@ -1,6 +1,9 @@
 
 ## Release Notes
 
+### 0.7.0
+- using tod-super-pom 1.3.0
+
 ### 0.6.1
 
 May 5th, 2015
