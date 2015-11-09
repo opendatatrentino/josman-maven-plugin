@@ -13,7 +13,7 @@
 
 	<groupId>eu.trentorise.opendata</groupId>
 	<artifactId>josman-maven-plugin</artifactId>
-	<version>0.7.0</version>
+	<version>0.7.1-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 
 
