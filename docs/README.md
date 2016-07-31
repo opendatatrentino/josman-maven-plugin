@@ -64,12 +64,17 @@ To ignore some version, you can use `ignoredVersions`:
 
 ```
 
+### Supported Markdown features
+
+Some examples can be found in [tests](tests.md) page. Keep in mind not all Github features are supported by <a href="https://github.com/sirthias/pegdown" target="_blank"> PegDown </a>, the Markdown-to-Html conversion library we use (some further tweaks to the generated HTML are done with <a href="http://jodd.org/doc/jerry" target="_blank"> Jerry</a>)
+
 ### Sending site to Github
 
-A good companion to Josman is <a href="https://github.github.com/maven-plugins/site-plugin/" target="_blank"> GitHub Site Plugin</a> that allows sending the generated website to origin repository in the gh-pages branch, so that it will be served by Github on `myorganization.github.io/myrepo` urls.
+A good companion to Josman is <a href="https://github.github.com/maven-plugins/site-plugin/" target="_blank"> GitHub Site Plugin</a> that allows sending the generated website to origin repository in the `gh-pages` branch, so that it will be served by Github on `myorganization.github.io/myrepo` urls.
 
 To send website:
 
 ```
 mvn com.github.github:site-maven-plugin:site
 ```
+

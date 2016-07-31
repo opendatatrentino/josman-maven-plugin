@@ -1,0 +1,74 @@
+
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>TODO supply a title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {
+                margin:0; 
+                padding:0; 
+            }
+
+
+            #wrapper {
+                margin: 0 auto 0 auto;
+                max-width:300px;  // wrapper-width
+                min-height:600px;
+                height:auto;
+                background-color:#009900;
+            }
+
+            #header {
+                position: fixed;
+                width: 500px; 
+                height: 150px;
+                background-color: #ccc;
+                z-index: 100;
+            }
+
+
+            #content {
+                position:absolute;
+                top:150px;
+                margin-left:150px;  // sidebar-width
+                overflow: auto;
+                width:300px;  /* 500px - 150px = 550px */  // wrapper-width - sidebar-width
+                background-color:#CC9900; 
+            }
+
+
+            #sidebar {
+                position: fixed;
+                top:150px;
+                max-width: 10px;  // sidebar-width
+                height: 100%;
+                min-height:200px; /* just do simulate content */
+                z-index: 100;
+                background-color:#96F;
+            }            
+        </style>
+    </head>
+    <body>
+        <div id="wrapper">
+            <div id="header">Fixed header</div>
+            <div id="content">
+                <p>Dummeeeey Text</p><br /><br /><br />
+                <p>Dummy Text</p><br /><br /><br />
+                <p>Dummy Text</p><br /><br /><br />
+                <p>Dummy Text</p><br /><br /><br />
+                <p>Dummy Text</p><br /><br /><br />
+                <p>Dummy Text</p><br /><br /><br />
+                <p>Dummy Text</p><br /><br /><br />
+                <p>Dummy Text</p><br /><br /><br />
+            </div>
+            <div id="sidebar">Fixed sidebar</div>
+        </div>
+    </body>
+</html>

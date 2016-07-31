@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package eu.trentorise.opendata.josman.maven;
+package eu.trentorise.opendata.josman;
 
 import eu.trentorise.opendata.josman.JosmanProject;
 import org.apache.maven.plugin.MojoExecutionException;

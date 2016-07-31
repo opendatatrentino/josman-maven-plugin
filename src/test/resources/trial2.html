@@ -1,0 +1,122 @@
+
+<!-- Limpid ♥ IE in quirks mode -->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<title>Fixed left-sidebar and header</title>
+<link rel="stylesheet" href="/lab/css/fixed/layout.css" type="text/css">
+<link rel="icon" href="/img/favicon.png" type="image/png">
+<link rel="author" href="/" title="Limpid">
+<link rel="author" href="http://annevankesteren.nl/" title="Anne van Kesteren">
+<link rel="help" href="/lab/css/fixed/theory" title="Theory of fixed positioning">
+<style type="text/css">
+    body{
+        margin:0;
+        padding:100px 0 0 150px;
+    }
+    div#header{
+        position:absolute;
+        top:0;
+        left:150px;
+        width:500%;
+        height:100px;
+        background-color: #F00;
+    }
+    div#left-sidebar{
+        position:absolute;
+        top:0;
+        left:0;
+        width:150px;
+        height:100%;
+        background-color: #0F0;
+    }
+    @media screen{
+        body>div#header{
+            position:fixed;
+        }
+        body>div#left-sidebar{
+            position:fixed;
+        }
+    }
+    * html body{
+        overflow:hidden;
+    } 
+    * html div#content{
+        height:100%;
+        overflow:auto;
+    }
+</style>
+<div id="header">
+    <p>Content can be placed here…
+</div>
+<div id="left-sidebar">
+    <p>Content can be placed here…
+</div>
+<div id="content">
+    <h1>Fixed left-sidebar and header <span>(part of <a href="http://annevankesteren.nl/archives/2004/07/fixed-positioning">fixed positioning</a>)</span></h1>
+    <h2>Code</h2>
+    <pre><code class="markup comment">&lt;!-- IE in quirks mode --&gt;</code>
+<code class="markup doctype">&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot;&gt;</code>
+&lt;<code class="markup element-name">title</code>&gt;Fixed left-sidebar and header&lt;/<code class="markup element-name">title</code>&gt;
+&lt;<code class="markup element-name">style</code> <code class="markup attribute-name">type</code>=<code class="markup attribute-value">&quot;text/css&quot;</code>&gt;
+ body{
+  margin:0;
+  padding:<var>header-<a href="/lab/css/fixed/theory#length">&lt;length&gt;</a></var> 0 0 <var>left-sidebar-<a href="/lab/css/fixed/theory#length">&lt;length&gt;</a></var>;
+ }
+ div#header{
+  position:absolute;
+  top:0;
+  left:<var>left-sidebar-<a href="/lab/css/fixed/theory#length">&lt;length&gt;</a></var>;
+  width:500%;
+  height:<var>header-<a href="/lab/css/fixed/theory#length">&lt;length&gt;</a></var>;
+ }
+ div#sidebar{
+  position:absolute;
+  top:0;
+  left:0;
+  width:<var>left-sidebar-<a href="/lab/css/fixed/theory#length">&lt;length&gt;</a></var>;
+  height:100%;
+ }
+ @media screen{
+  body&gt;div#header{
+   position:fixed;
+  }
+  body&gt;div#left-sidebar{
+   position:fixed;
+  }
+ }
+ * html body{
+  overflow:hidden;
+ } 
+ * html div#content{
+  height:100%;
+  overflow:auto;
+ }
+&lt;/<code class="markup element-name">style</code>&gt;
+&lt;<code class="markup element-name">div</code> <code class="markup attribute-name">id</code>=<code class="markup attribute-value">&quot;header&quot;</code>&gt; header &lt;/<code class="markup element-name">div</code>&gt;
+&lt;<code class="markup element-name">div</code> <code class="markup attribute-name">id</code>=<code class="markup attribute-value">&quot;left-sidebar&quot;</code>&gt; left-sidebar &lt;/<code class="markup element-name">div</code>&gt;
+&lt;<code class="markup element-name">div</code> <code class="markup attribute-name">id</code>=<code class="markup attribute-value">&quot;content&quot;</code>&gt; content &lt;/<code class="markup element-name">div</code>&gt;</pre>
+
+    <h2>Related examples</h2>
+    <h3>One or two columns</h3>
+    <ul>
+        <li><a href="/lab/css/fixed/header">Fixed header</a>
+        <li><a href="/lab/css/fixed/header-and-left-sidebar">Fixed header and left-sidebar</a>
+        <li><a href="/lab/css/fixed/header-and-right-sidebar">Fixed header and right-sidebar</a>
+        <li><a href="/lab/css/fixed/header-and-footer">Fixed header and footer</a>
+        <li><a href="/lab/css/fixed/left-sidebar">Fixed left-sidebar</a>
+        <li><a href="/lab/css/fixed/left-sidebar-and-header">Fixed left-sidebar and header</a>
+        <li><a href="/lab/css/fixed/left-sidebar-and-right-sidebar">Fixed left-sidebar and right-sidebar</a>
+        <li><a href="/lab/css/fixed/left-sidebar-and-footer">Fixed left-sidebar and footer</a>
+        <li><a href="/lab/css/fixed/right-sidebar">Fixed right-sidebar</a>
+        <li><a href="/lab/css/fixed/right-sidebar-and-header">Fixed right-sidebar and header</a>
+        <li><a href="/lab/css/fixed/right-sidebar-and-footer">Fixed right-sidebar and footer</a>
+        <li><a href="/lab/css/fixed/footer">Fixed footer</a>
+    </ul>
+    <h3>Special examples</h3>
+    <ul>
+        <li>Currently none.</li>
+    </ul>
+
+    <h2>Note</h2>
+    <p>This example is part of a <a href="http://annevankesteren.nl/archives/2004/07/fixed-positioning" title="Fixed positioning">weblog entry</a> and is made by <a href="http://annevankesteren.nl/">Anne van Kesteren</a> and Arthur Steiner.
+    <p>A lot more combinations are possible, of course, but it would become impossible to create and list them all. After you understand the <a href="/lab/css/fixed/theory">theory</a>, you will be fine.
+</div>

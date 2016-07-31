@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.3.1 r9886"
+   sodipodi:docname="josman-logo.svg">
+  <defs
+     id="defs4">
+    <linearGradient
+       id="linearGradient3759">
+      <stop
+         style="stop-color:#ffffff;stop-opacity:1;"
+         offset="0"
+         id="stop3761" />
+      <stop
+         style="stop-color:#ebf9ff;stop-opacity:1;"
+         offset="1"
+         id="stop3763" />
+    </linearGradient>
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3759"
+       id="radialGradient3767"
+       cx="-29.17794"
+       cy="882.54462"
+       fx="-29.17794"
+       fy="882.54462"
+       r="92.069099"
+       gradientTransform="matrix(1,0,0,1.0026847,0,-2.36936)"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.4"
+     inkscape:cx="-74.833927"
+     inkscape:cy="241.1999"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1366"
+     inkscape:window-height="748"
+     inkscape:window-x="-2"
+     inkscape:window-y="-3"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#ff0000;fill-opacity:0;stroke:#dc0000;stroke-width:3.79099989;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="rect2985"
+       width="451.85977"
+       height="205.71428"
+       x="-18.787033"
+       y="78.076469" />
+    <rect
+       style="fill:#ff0000;fill-opacity:0;stroke:#dc0000;stroke-width:3.79099989;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="rect2987"
+       width="285.71429"
+       height="468.57144"
+       x="285.71429"
+       y="186.6479" />
+    <rect
+       style="fill:url(#radialGradient3767);fill-opacity:1;stroke:#000000;stroke-width:4.26766014000000027;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="rect2989"
+       width="179.87054"
+       height="180.3649"
+       x="-119.11321"
+       y="792.36218"
+       inkscape:export-filename="/home/da/Da/prj/trentorise/josman/prj/docs/img/josman-logo-200px.png"
+       inkscape:export-xdpi="97.664314"
+       inkscape:export-ydpi="97.664314" />
+    <text
+       xml:space="preserve"
+       style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="-100.71429"
+       y="892.505"
+       id="text3767"
+       sodipodi:linespacing="125%"
+       inkscape:export-filename="/home/da/Da/prj/trentorise/josman/prj/docs/img/josman-logo-200px.png"
+       inkscape:export-xdpi="97.664314"
+       inkscape:export-ydpi="97.664314"><tspan
+         sodipodi:role="line"
+         id="tspan3769"
+         x="-100.71429"
+         y="892.505"><tspan
+           style="fill:#0000eb;fill-opacity:1"
+           id="tspan3814">J</tspan><tspan
+           style="fill:#00eb86;fill-opacity:1"
+           id="tspan3770">os</tspan><tspan
+           style="fill:#2fef01;fill-opacity:1"
+           id="tspan3812">man</tspan></tspan></text>
+  </g>
+</svg>
