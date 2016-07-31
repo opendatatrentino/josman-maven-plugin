@@ -15,7 +15,7 @@
  */
 package eu.trentorise.opendata.josman;
 
-import static eu.trentorise.opendata.commons.TodUtils.checkNotEmpty;
+import static eu.trentorise.opendata.commons.validation.Preconditions.checkNotEmpty;
 import eu.trentorise.opendata.commons.SemVersion;
 import eu.trentorise.opendata.josman.JosmanProject;
 import java.io.File;
@@ -108,19 +108,11 @@ public abstract class JosmanMojo extends AbstractMojo {
 
         checkNotEmpty(repoTitle, "Found wrong repo title!");
 
-        String projectUrl = getProject().getUrl();
-
-        checkNotEmpty(projectUrl, "project url is invalid!");
-
-        //https://github.com/opendatatrentino/tod-commons
-        String stripGithub = projectUrl.substring("https://github.com/".length());
-
-        String repoOrganization = stripGithub.substring(0, stripGithub.indexOf("/"));
 
         getLog().info("");
         info("repo name:         " + repoName);
         info("repo title:        " + repoTitle);
-        info("repo organization: " + repoOrganization);
+        info("repo organization: " + Josmans.organization(getProject().getUrl()));
         getLog().info("");
 
         boolean isSnapshot;
@@ -144,9 +136,7 @@ public abstract class JosmanMojo extends AbstractMojo {
         }
 
         return new JosmanProject(
-                repoName,
-                repoTitle,
-                repoOrganization,
+                getProject(),
                 "",
                 "target" + File.separator + "site",
                 parsedIgnoredVersions,

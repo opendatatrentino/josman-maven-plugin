@@ -4,9 +4,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import eu.trentorise.opendata.commons.NotFoundException;
 import eu.trentorise.opendata.commons.TodUtils;
-import eu.trentorise.opendata.commons.validation.Preconditions;
 
-import static eu.trentorise.opendata.commons.TodUtils.checkNotEmpty;
+
+import static eu.trentorise.opendata.commons.validation.Preconditions.checkNotEmpty;
 import eu.trentorise.opendata.commons.SemVersion;
 import java.io.File;
 import java.io.FileInputStream;
@@ -19,8 +19,8 @@ import javax.annotation.Nullable;
 import jodd.jerry.Jerry;
 import jodd.jerry.JerryFunction;
 import org.apache.commons.io.FileUtils;
-import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.apache.maven.project.MavenProject;
 import org.eclipse.egit.github.core.RepositoryTag;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -61,15 +61,12 @@ public class JosmanProject {
     public static final String README_MD = "README.md";
     public static final String CHANGES_MD = "CHANGES.md";
 
-    private String repoName;
-    private String repoTitle;
-    private String repoOrganization;
+    private MavenProject mvnPrj;
     private boolean snapshotMode;
     private File sourceRepoDir;
     private File pagesDir;
     private ImmutableList<SemVersion> ignoredVersions;
-
-    private Model pom;
+    
     private Repository repo;
 
     /**
@@ -113,24 +110,19 @@ public class JosmanProject {
      *
      */
     public JosmanProject(
-            String repoName,
-            String repoTitle,
-            String repoOrganization,
+            MavenProject mvnPrj,
             String sourceRepoDirPath,
             String pagesDirPath,
             List<SemVersion> ignoredVersions,
             boolean snapshotMode) {
-
-        checkNotEmpty(repoName, "Invalid repository name!");
-        checkNotEmpty(repoTitle, "Invalid repository title!");
-        checkNotEmpty(repoOrganization, "Invalid repository organization!");
+               
+        checkNotNull(mvnPrj, "Invalid Maven project!");
         checkNotNull(sourceRepoDirPath, "Invalid repository source docs dir path!");
         checkNotNull(pagesDirPath, "Invalid pages dir path!");
         checkNotNull(ignoredVersions, "Invalid versions to ignore!");
-
-        this.repoName = repoName;
-        this.repoTitle = repoTitle;
-        this.repoOrganization = repoOrganization;
+        
+        this.mvnPrj = mvnPrj;
+        
         this.ignoredVersions = ImmutableList.copyOf(ignoredVersions);
         if (sourceRepoDirPath.isEmpty()) {
             this.sourceRepoDir = new File("." + File.separator);
@@ -272,9 +264,9 @@ public class JosmanProject {
         String filteredSourceMdString = sourceMdString
                 .replaceAll("#\\{version}", version.toString())
                 .replaceAll("#\\{majorMinorVersion}", Josmans.majorMinor(version))
-                .replaceAll("#\\{repoRelease}", Josmans.repoRelease(repoOrganization, repoName, version))
+                .replaceAll("#\\{repoRelease}", Josmans.repoRelease(Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId(), version))
                 .replaceAll("jedoc", "josman"); // for legacy compat 
-
+        
         String skeletonString;
         try {
             StringWriter writer = new StringWriter();
@@ -298,7 +290,7 @@ public class JosmanProject {
         }
 
         Jerry skeleton = Jerry.jerry(skeletonStringFixedPaths);
-        skeleton.$("title").text(repoTitle);
+        skeleton.$("title").text(mvnPrj.getName());
         String contentFromMdHtml = pegDownProcessor.markdownToHtml(filteredSourceMdString);
         Jerry contentFromMd = Jerry.jerry(contentFromMdHtml);
 
@@ -309,7 +301,7 @@ public class JosmanProject {
                     public boolean onNode(Jerry arg0, int arg1) {
                         String href = arg0.attr("href");
                         if (href.startsWith(prependedPath + "src")) {
-                            arg0.attr("href", href.replace(prependedPath + "src", Josmans.repoRelease(repoOrganization, repoName, version) + "/src"));
+                            arg0.attr("href", href.replace(prependedPath + "src", Josmans.repoRelease(Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId(), version) + "/src"));
                             return true;
                         }
                         if (href.endsWith(".md")) {
@@ -318,17 +310,17 @@ public class JosmanProject {
                         }
 
                         if (href.equals(prependedPath + "../../wiki")) {
-                            arg0.attr("href", href.replace(prependedPath + "../../wiki", Josmans.repoWiki(repoOrganization, repoName)));
+                            arg0.attr("href", href.replace(prependedPath + "../../wiki", Josmans.repoWiki(Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId())));
                             return true;
                         }
 
                         if (href.equals(prependedPath + "../../issues")) {
-                            arg0.attr("href", href.replace(prependedPath + "../../issues", Josmans.repoIssues(repoOrganization, repoName)));
+                            arg0.attr("href", href.replace(prependedPath + "../../issues", Josmans.repoIssues(Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId())));
                             return true;
                         }
 
                         if (href.equals(prependedPath + "../../milestones")) {
-                            arg0.attr("href", href.replace(prependedPath + "../../milestones", Josmans.repoMilestones(repoOrganization, repoName)));
+                            arg0.attr("href", href.replace(prependedPath + "../../milestones", Josmans.repoMilestones(Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId())));
                             return true;
                         }
 
@@ -363,19 +355,19 @@ public class JosmanProject {
 
         skeleton.$("#josman-internal-content").html(contentFromMd.html());
 
-        skeleton.$("#josman-repo-link").html(repoTitle).attr("href", prependedPath + "index.html");
+        skeleton.$("#josman-repo-link").html(mvnPrj.getName()).attr("href", prependedPath + "index.html");
 
-        File programLogo = programLogo(sourceDocsDir(), repoName);
+        File programLogo = programLogo(sourceDocsDir(), mvnPrj.getArtifactId());
 
         if (programLogo.exists()) {
-            skeleton.$("#josman-program-logo").attr("src", prependedPath + "img/" + repoName + "-logo-200px.png");
+            skeleton.$("#josman-program-logo").attr("src", prependedPath + "img/" + mvnPrj.getArtifactId() + "-logo-200px.png");
             skeleton.$("#josman-program-logo-link").attr("href", prependedPath + "index.html");
         } else {
             skeleton.$("#josman-program-logo-link").css("display", "none");
         }
 
-        skeleton.$("#josman-wiki").attr("href", Josmans.repoWiki(repoOrganization, repoName));
-        skeleton.$("#josman-project").attr("href", Josmans.repoUrl(repoOrganization, repoName));
+        skeleton.$("#josman-wiki").attr("href", Josmans.repoWiki(Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId()));
+        skeleton.$("#josman-project").attr("href", Josmans.repoUrl(Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId()));
 
         skeleton.$("#josman-home").attr("href", prependedPath + "index.html");
         if (Josmans.isRootpath(relPath)) {
@@ -385,7 +377,7 @@ public class JosmanProject {
         // cleaning example versions
         skeleton.$(".josman-version-tab-header").remove();
 
-        List<RepositoryTag> tags = new ArrayList(Josmans.versionTagsToProcess(repoName, repoTags, ignoredVersions).values());
+        List<RepositoryTag> tags = new ArrayList(Josmans.versionTagsToProcess(mvnPrj.getArtifactId(), repoTags, ignoredVersions).values());
         Collections.reverse(tags);
 
         if (Josmans.isRootpath(relPath)) {
@@ -401,7 +393,7 @@ public class JosmanProject {
         if (snapshotMode) {
 
             if (tags.size() > 0) {
-                SemVersion ver = Josmans.version(repoName, tags.get(0).getName());
+                SemVersion ver = Josmans.version(mvnPrj.getArtifactId(), tags.get(0).getName());
                 if (version.getMajor() >= ver.getMajor()
                         && version.getMinor() >= ver.getMinor()) {
                     addVersionHeaderTag(skeleton, prependedPath, version, prependedPath.length() != 0);
@@ -414,7 +406,7 @@ public class JosmanProject {
         } else {
 
             for (RepositoryTag tag : tags) {
-                SemVersion ver = Josmans.version(repoName, tag.getName());
+                SemVersion ver = Josmans.version(mvnPrj.getArtifactId(), tag.getName());
                 addVersionHeaderTag(
                         skeleton,
                         prependedPath,
@@ -543,7 +535,7 @@ public class JosmanProject {
 
         checkNotNull(repo);
 
-        String releaseTag = Josmans.releaseTag(repoName, version);
+        String releaseTag = Josmans.releaseTag(mvnPrj.getArtifactId(), version);
 
         try {
             ObjectId lastCommitId = repo.resolve(releaseTag);
@@ -670,21 +662,9 @@ public class JosmanProject {
 
     public void generateSite() {
 
-        LOG.log(Level.INFO, "Fetching {0}/{1} tags.", new Object[]{repoOrganization, repoName});
-        repoTags = Josmans.fetchTags(repoOrganization, repoName);
-        MavenXpp3Reader reader = new MavenXpp3Reader();
-
-        try {
-            pom = reader.read(new FileInputStream(new File(sourceRepoDir, "pom.xml")));
-            // some checking everything is in order ...
-            checkNotNull(pom);
-            Preconditions.checkNotEmpty(pom.getVersion(), "Invalid version!");
-        }
-        catch (Exception ex) {
-            throw new RuntimeException("Error while reading pom!", ex);
-        }
-
-        
+        LOG.log(Level.INFO, "Fetching {0}/{1} tags.", new Object[]{Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId()});
+        repoTags = Josmans.fetchTags(Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId());
+        MavenXpp3Reader reader = new MavenXpp3Reader();             
         
         try {
             File repoFile = new File(sourceRepoDir, ".git");
@@ -710,7 +690,7 @@ public class JosmanProject {
             throw new RuntimeException("Error while deleting directory " + pagesDir.getAbsolutePath(), ex);
         }
         
-        SemVersion snapshotVersion = SemVersion.of(pom.getVersion()).withPreReleaseVersion("");
+        SemVersion snapshotVersion = SemVersion.of(mvnPrj.getVersion()).withPreReleaseVersion("");
 
         if (snapshotMode) {
             LOG.log(Level.INFO, "Processing local version");
@@ -723,17 +703,17 @@ public class JosmanProject {
             if (repoTags.isEmpty()) {
                 throw new NotFoundException("There are no tags at all in the repository!!");
             }
-            SemVersion latestPublishedVersion = Josmans.latestVersion(repoName, repoTags);
+            SemVersion latestPublishedVersion = Josmans.latestVersion(mvnPrj.getArtifactId(), repoTags);
             LOG.log(Level.INFO, "Processing published version");
             buildIndex(latestPublishedVersion);
             String curBranch = Josmans.readRepoCurrentBranch(sourceRepoDir);
 
 
-            SortedMap<String, RepositoryTag> filteredTags = Josmans.versionTagsToProcess(repoName, repoTags, ignoredVersions);
+            SortedMap<String, RepositoryTag> filteredTags = Josmans.versionTagsToProcess(mvnPrj.getArtifactId(), repoTags, ignoredVersions);
 
             for (RepositoryTag tag : filteredTags.values()) {
                 LOG.log(Level.INFO, "Processing release tag {0}", tag.getName());
-                processGitDocsDir(Josmans.version(repoName, tag.getName()));
+                processGitDocsDir(Josmans.version(mvnPrj.getArtifactId(), tag.getName()));
             }
 
         }
@@ -744,13 +724,13 @@ public class JosmanProject {
 
             File targetImgDir = new File(pagesDir, "img");
 
-            File programLogo = programLogo(sourceDocsDir(), repoName);
+            File programLogo = programLogo(sourceDocsDir(), mvnPrj.getArtifactId());
 
             if (programLogo.exists()) {
                 LOG.log(Level.INFO, "Found program logo: {0}", programLogo.getAbsolutePath());
                 LOG.log(Level.INFO, "      copying it into dir {0}", targetImgDir.getAbsolutePath());
 
-                FileUtils.copyFile(programLogo, new File(targetImgDir, programLogoName(repoName)));
+                FileUtils.copyFile(programLogo, new File(targetImgDir, programLogoName(mvnPrj.getArtifactId())));
             }
 
             FileUtils.copyFile(new File(sourceRepoDir, "LICENSE.txt"), new File(pagesDir, "LICENSE.txt"));
@@ -863,11 +843,11 @@ public class JosmanProject {
         } else {
             File jardocs;
             try {
-                jardocs = Josmans.fetchJavadoc(pom.getGroupId(), pom.getArtifactId(), version);
+                jardocs = Josmans.fetchJavadoc(mvnPrj.getGroupId(), mvnPrj.getArtifactId(), version);
             }
             catch (Exception ex) {
                 String sep = File.separator;
-                String localJarPath = sourceRepoDir.getAbsolutePath() + sep + "target" + sep + "checkout" + sep + "target" + sep + Josmans.javadocJarName(repoName, version);
+                String localJarPath = sourceRepoDir.getAbsolutePath() + sep + "target" + sep + "checkout" + sep + "target" + sep + Josmans.javadocJarName(mvnPrj.getArtifactId(), version);
                 LOG.log(Level.WARNING, "Error while fetching javadoc from Maven Central, trying to locate it at " + localJarPath, ex);
                 jardocs = new File(localJarPath);
                 if (!jardocs.exists()) {
@@ -880,17 +860,13 @@ public class JosmanProject {
     }
 
     public String getRepoName() {
-        return repoName;
+        return mvnPrj.getArtifactId();
     }
-
-    public String getRepoOrganization() {
-        return repoOrganization;
-    }
+ 
 
     public ImmutableList<SemVersion> getIgnoredVersions() {
         return ignoredVersions;
     }
 
-    
     
 }

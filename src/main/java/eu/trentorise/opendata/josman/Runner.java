@@ -2,6 +2,7 @@ package eu.trentorise.opendata.josman;
 
 import eu.trentorise.opendata.commons.SemVersion;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import static java.lang.System.exit;
 import java.net.URISyntaxException;
@@ -14,6 +15,9 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.Parser;
 import org.apache.commons.cli.PosixParser;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.apache.maven.project.MavenProject;
 import org.parboiled.common.ImmutableList;
 
 /**
@@ -112,12 +116,21 @@ public class Runner {
         LOG.severe("TODO Runner is not fully implemented yet!!");
         exit(1);
      
-        
+        // NOTE: Reading a pom file does not involve interpolation of data such 
+        // as variables, inherited settings from parents (and their proto-parents) and so on. 
+        Model model = null;
+        FileReader reader = null;
+        MavenXpp3Reader mavenreader = new MavenXpp3Reader();
+        try {
+            File pomFile = new File(repoPath + File.separator + "pom.xml");
+            reader = new FileReader(pomFile);
+            model = mavenreader.read(reader);
+            model.setPomFile(pomFile);
+        }catch(Exception ex){}
+        MavenProject mvnPrj = new MavenProject(model);
         
         JosmanProject josman = new JosmanProject(
-                repoName,
-                repoTitle,
-                repoOrg,
+                mvnPrj,
                 repoPath, // ".."+ sep + ".." + sep + repoName + sep + "prj", // todo fixed path!
                 outPath, // ".."+ sep + ".." + sep + repoName + sep + "prj" + sep +"target" + sep + "site", // todo fixed path!
                 ignoredVersions, //ImmutableList.of(SemVersion.of("0.1.0")),

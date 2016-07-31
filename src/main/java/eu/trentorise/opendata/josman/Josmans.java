@@ -683,4 +683,21 @@ public final class Josmans {
         }
 
     }
+    
+    /**
+     * Returns the organization given a project url, so from i.e.
+     * <a href="https://github.com/opendatatrentino/tod-commons">https://github.com/opendatatrentino/tod-commons
+     * </a> will extract '{@code tod-commons}'
+     * 
+     * @since 0.8.0
+     */
+    public static String organization(String projectUrl){
+        
+        checkNotEmpty(projectUrl, "project url is invalid!");
+        
+        String stripGithub = projectUrl.substring("https://github.com/".length());
+
+        return stripGithub.substring(0, stripGithub.indexOf("/"));
+
+    }
 }
