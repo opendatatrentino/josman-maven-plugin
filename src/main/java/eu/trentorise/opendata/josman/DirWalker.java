@@ -1,9 +1,12 @@
 package eu.trentorise.opendata.josman;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import eu.trentorise.opendata.commons.NotFoundException;
 import static eu.trentorise.opendata.commons.TodUtils.checkNotEmpty;
 import eu.trentorise.opendata.commons.SemVersion;
+import eu.trentorise.opendata.josman.exceptions.JosmanException;
+import eu.trentorise.opendata.josman.exceptions.JosmanIoException;
+import eu.trentorise.opendata.josman.exceptions.JosmanNotFoundException;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -32,7 +35,7 @@ public class DirWalker extends DirectoryWalker {
     private List<String> relPaths;
 
     /**
-     * @throws NotFoundException if source root doesn't exists    
+     * @throws JosmanNotFoundException if source root doesn't exists    
      */
     public DirWalker(
                     File sourceRoot, 
@@ -44,11 +47,11 @@ public class DirWalker extends DirectoryWalker {
         super();
         checkNotNull(sourceRoot);
         if (!sourceRoot.exists()) {
-            throw new NotFoundException("source root does not exists: " + sourceRoot.getAbsolutePath());
+            throw new JosmanNotFoundException("source root does not exists: " + sourceRoot.getAbsolutePath());
         }
         checkNotNull(destinationRoot);
         if (destinationRoot.exists()) {
-            throw new NotFoundException("destination directory does already exists: " + destinationRoot.getAbsolutePath());
+            throw new JosmanNotFoundException("destination directory does already exists: " + destinationRoot.getAbsolutePath());
         }
         checkNotNull(josman);
         checkNotNull(version);
@@ -60,11 +63,14 @@ public class DirWalker extends DirectoryWalker {
         this.relPaths = relPaths;
     }
 
+    /**
+     * @throws JosmanIoException
+     */
     public void process() {
         try {
             walk(sourceRoot, new ArrayList());
         } catch (IOException ex) {
-            throw new RuntimeException("Error while copying root " + sourceRoot.getAbsolutePath(), ex);
+            throw new JosmanIoException("Error while copying root " + sourceRoot.getAbsolutePath(), ex);
         }
     }   
     
@@ -72,17 +78,18 @@ public class DirWalker extends DirectoryWalker {
      * Copies directory content to destination and adds processed directory File to results.
      * @param depth
      * @param results ignored
+     * @throws JosmanIoException
      */
     @Override
     protected boolean handleDirectory(File directory, int depth, Collection results) {
         LOG.log(Level.INFO, "Processing directory {0}", directory.getAbsolutePath());
         File target = new File(destinationRoot, directory.getAbsolutePath().replace(sourceRoot.getAbsolutePath(), ""));
         if (target.exists()) {
-            throw new RuntimeException("Target directory already exists!! " + target.getAbsolutePath());
+            throw new JosmanIoException("Target directory already exists!! " + target.getAbsolutePath());
         }
         LOG.log(Level.INFO, "Creating target    directory {0}", target.getAbsolutePath());
         if (!target.mkdirs()) {
-            throw new RuntimeException("Couldn't create directory!! " + target.getAbsolutePath());
+            throw new JosmanIoException("Couldn't create directory!! " + target.getAbsolutePath());
         }
         results.add(target);
         return true;

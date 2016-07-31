@@ -2,9 +2,10 @@ package eu.trentorise.opendata.josman;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import eu.trentorise.opendata.commons.NotFoundException;
 import eu.trentorise.opendata.commons.TodUtils;
-
+import eu.trentorise.opendata.josman.exceptions.JosmanException;
+import eu.trentorise.opendata.josman.exceptions.JosmanIoException;
+import eu.trentorise.opendata.josman.exceptions.JosmanNotFoundException;
 
 import static eu.trentorise.opendata.commons.validation.Preconditions.checkNotEmpty;
 import eu.trentorise.opendata.commons.SemVersion;
@@ -78,6 +79,10 @@ public class JosmanProject {
 
     PegDownProcessor pegDownProcessor;
 
+    /**
+     * @throws JosmanIoException
+     * 
+     */
     private static void deleteOutputVersionDir(File outputVersionDir, int major, int minor) {
 
         String versionName = "" + major + "." + minor;
@@ -93,10 +98,10 @@ public class JosmanProject {
                     LOG.info("Done cleaning directory.");
                 }
                 catch (Exception ex) {
-                    throw new RuntimeException("Error while deleting directory!", ex);
+                    throw new JosmanIoException("Error while deleting directory!", ex);
                 }
             } else {
-                throw new RuntimeException("output path " + outputVersionDir.getAbsolutePath() + " doesn't end with '" + versionName + "', avoiding cleaning it for safety reasons!");
+                throw new JosmanIoException("output path " + outputVersionDir.getAbsolutePath() + " doesn't end with '" + versionName + "', avoiding cleaning it for safety reasons!");
             }
         }
 
@@ -179,6 +184,8 @@ public class JosmanProject {
      *
      * @param version
      * @return the target file
+     * 
+     * @throws JosmanIoException
      */
     File copyStream(
             InputStream sourceStream,
@@ -194,7 +201,7 @@ public class JosmanProject {
         File targetFile = Josmans.targetFile(pagesDir, relPath, version);
 
         if (targetFile.exists()) {
-            throw new RuntimeException("Target file already exists! "
+            throw new JosmanIoException("Target file already exists! "
                     + targetFile.getAbsolutePath());
         }
 
@@ -202,7 +209,7 @@ public class JosmanProject {
 
             LOG.log(Level.INFO, "Creating file {0}", targetFile.getAbsolutePath());
             if (targetFile.exists()) {
-                throw new RuntimeException("Target file already exists! Target is " + targetFile.getAbsolutePath());
+                throw new JosmanIoException("Target file already exists! Target is " + targetFile.getAbsolutePath());
             }
             copyMdAsHtml(sourceStream, relPath, version, relPaths);
         } else {
@@ -215,7 +222,7 @@ public class JosmanProject {
                 LOG.info("Done copying file.");
             }
             catch (Exception ex) {
-                throw new RuntimeException("Error while copying stream to file!", ex);
+                throw new JosmanIoException("Error while copying stream to file!", ex);
             }
         }
         return targetFile;
@@ -230,6 +237,8 @@ public class JosmanProject {
      * img/mypic.jpg or docs/README.md
      * @param version The version the md page refers to.
      * @param relpaths a list of relative paths for the sidebar
+     * 
+     * @throws JosmanIoException
      */
     void copyMdAsHtml(
             InputStream sourceMdStream,
@@ -246,7 +255,7 @@ public class JosmanProject {
         File targetFile = Josmans.targetFile(pagesDir, relPath, version);
 
         if (targetFile.exists()) {
-            throw new RuntimeException("Trying to write md file to target that already exists!! Target is " + targetFile.getAbsolutePath());
+            throw new JosmanIoException("Trying to write md file to target that already exists!! Target is " + targetFile.getAbsolutePath());
         }
 
         String sourceMdString;
@@ -256,7 +265,7 @@ public class JosmanProject {
             sourceMdString = writer.toString();
         }
         catch (Exception ex) {
-            throw new RuntimeException("Couldn't read source md stream! Target path is " + targetFile.getAbsolutePath(), ex);
+            throw new JosmanIoException("Couldn't read source md stream! Target path is " + targetFile.getAbsolutePath(), ex);
         }
 
         Josmans.checkNotMeaningful(sourceMdString, "Invalid source md file!");
@@ -275,7 +284,7 @@ public class JosmanProject {
             skeletonString = writer.toString();
         }
         catch (Exception ex) {
-            throw new RuntimeException("Couldn't read skeleton file!", ex);
+            throw new JosmanIoException("Couldn't read skeleton file!", ex);
         }
 
         String skeletonStringFixedPaths;
@@ -417,14 +426,14 @@ public class JosmanProject {
             Pattern p = Pattern.compile("todo", Pattern.CASE_INSENSITIVE);
             Matcher matcher = p.matcher(skeleton.html());
             if (matcher.find()) {
-                //throw new RuntimeException("Found '" + matcher.group() + "' string in stream for " + targetFile.getAbsolutePath() + " (at position " + matcher.start() + ")");
+                //throw new JosmanIoException("Found '" + matcher.group() + "' string in stream for " + targetFile.getAbsolutePath() + " (at position " + matcher.start() + ")");
                 LOG.warning("Found '" + matcher.group() + "' string in stream for " + targetFile.getAbsolutePath());
             }
         }
 
         if (!targetFile.getParentFile().exists()) {
             if (!targetFile.getParentFile().mkdirs()) {
-                throw new RuntimeException("Couldn't create target directories to host processed md file " + targetFile.getAbsolutePath());
+                throw new JosmanIoException("Couldn't create target directories to host processed md file " + targetFile.getAbsolutePath());
             }
         }
 
@@ -433,7 +442,7 @@ public class JosmanProject {
             FileUtils.write(targetFile, skeleton.html());
         }
         catch (Exception ex) {
-            throw new RuntimeException("Couldn't write into " + targetFile.getAbsolutePath() + "!", ex);
+            throw new JosmanIoException("Couldn't write into " + targetFile.getAbsolutePath() + "!", ex);
         }
 
     }
@@ -454,7 +463,7 @@ public class JosmanProject {
             copyMdAsHtml(new FileInputStream(sourceMdFile), README_MD, latestVersion, ImmutableList.of(README_MD));
         }
         catch (FileNotFoundException ex) {
-            throw new RuntimeException("Error while building index!", ex);
+            throw new JosmanException("Error while building index!", ex);
         }
     }
 
@@ -478,7 +487,7 @@ public class JosmanProject {
         checkNotNull(version);
 
         if (!sourceDocsDir().exists()) {
-            throw new RuntimeException("Can't find source dir!" + sourceDocsDir().getAbsolutePath());
+            throw new JosmanIoException("Can't find source dir!" + sourceDocsDir().getAbsolutePath());
         }
 
         File targetVersionDir = targetVersionDir(version);
@@ -509,7 +518,7 @@ public class JosmanProject {
     /**
      * @param path the exact path. Careful: must be *exact* dir name (i.e.
      * 'docs' will work for docs/a.txt but 'doc' won't work)
-     * @throws RuntimeException on error
+     * @throws JosmanIoException on error
      */
     private TreeWalk makeGitDocsWalk(RevTree tree, String path) {
         checkNotNull(tree);
@@ -522,13 +531,15 @@ public class JosmanProject {
             return treeWalk;
         }
         catch (Exception ex) {
-            throw new RuntimeException(ex);
+            throw new JosmanIoException(ex);
         }
     }
 
     /**
      * Processes a directory 'docs' at tag repoName-version that holds
      * documentation for a given version of the software
+     * 
+     * @throws JosmanIoException
      */
     private void processGitDocsDir(SemVersion version) {
         checkNotNull(version);
@@ -593,7 +604,7 @@ public class JosmanProject {
         }
 
         catch (Exception ex) {
-            throw new RuntimeException("Error while extracting docs from git local repo at commit " + releaseTag, ex);
+            throw new JosmanIoException("Error while extracting docs from git local repo at commit " + releaseTag, ex);
         }
 
         // ------------------------------------------------------
@@ -602,7 +613,7 @@ public class JosmanProject {
         // buildMd(sourceMdFile, outputFile, "../");            
         /*
          if (!sourceDocsDir().exists()) {
-         throw new RuntimeException("Can't find source dir!" + sourceDocsDir().getAbsolutePath());
+         throw new JosmanIoException("Can't find source dir!" + sourceDocsDir().getAbsolutePath());
          }
 
         
@@ -626,6 +637,8 @@ public class JosmanProject {
      * Copies target version to 'latest' directory, cleaning it before the copy
      *
      * @param version
+     * 
+     * @throws JosmanIoException
      */
     private void createLatestDocsDirectory(SemVersion version) {
 
@@ -633,7 +646,7 @@ public class JosmanProject {
         LOG.log(Level.INFO, "Creating latest docs directory {0}", targetLatestDocsDir.getAbsolutePath());
 
         if (!targetLatestDocsDir.getAbsolutePath().endsWith("latest")) {
-            throw new RuntimeException("Trying to delete a latest docs dir which doesn't end with 'latest'!");
+            throw new JosmanIoException("Trying to delete a latest docs dir which doesn't end with 'latest'!");
         }
         try {
             LOG.log(Level.INFO, "Deleting directory {0}  ...", targetLatestDocsDir.getAbsolutePath());
@@ -646,7 +659,7 @@ public class JosmanProject {
             LOG.log(Level.INFO, "Done copying directory.");
         }
         catch (Throwable tr) {
-            throw new RuntimeException("Error while creating latest docs directory ", tr);
+            throw new JosmanIoException("Error while creating latest docs directory ", tr);
         }
 
     }
@@ -660,6 +673,10 @@ public class JosmanProject {
         return snapshotMode;
     }
 
+    /**
+     * @throws JosmanNotFoundException
+     * @throws JosmanException
+     */
     public void generateSite() {
 
         LOG.log(Level.INFO, "Fetching {0}/{1} tags.", new Object[]{Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId()});
@@ -675,19 +692,19 @@ public class JosmanProject {
                     .build();
         }
         catch (Exception ex) {
-            throw new RuntimeException("Error while reading local git repo!", ex);
+            throw new JosmanException("Error while reading local git repo!", ex);
         }
 
         LOG.log(Level.INFO, "Cleaning target: {0}  ....", pagesDir.getAbsolutePath());
         if (!pagesDir.getAbsolutePath().endsWith("site")) {
-            throw new RuntimeException("target directory does not end with 'site' !");
+            throw new JosmanException("target directory does not end with 'site' !");
         }
         try {
             FileUtils.deleteDirectory(pagesDir);
             LOG.info("Done deleting directory");
         }
         catch (IOException ex) {
-            throw new RuntimeException("Error while deleting directory " + pagesDir.getAbsolutePath(), ex);
+            throw new JosmanException("Error while deleting directory " + pagesDir.getAbsolutePath(), ex);
         }
         
         SemVersion snapshotVersion = SemVersion.of(mvnPrj.getVersion()).withPreReleaseVersion("");
@@ -701,7 +718,7 @@ public class JosmanProject {
 
         } else {
             if (repoTags.isEmpty()) {
-                throw new NotFoundException("There are no tags at all in the repository!!");
+                throw new JosmanNotFoundException("There are no tags at all in the repository!!");
             }
             SemVersion latestPublishedVersion = Josmans.latestVersion(mvnPrj.getArtifactId(), repoTags);
             LOG.log(Level.INFO, "Processing published version");
@@ -737,7 +754,7 @@ public class JosmanProject {
 
         }
         catch (Exception ex) {
-            throw new RuntimeException("Error while copying files!", ex);
+            throw new JosmanException("Error while copying files!", ex);
         }
 
         LOG.log(Level.INFO, "\n\nSite is now browsable at {0}\n\n", pagesDir.getAbsolutePath());
@@ -819,11 +836,14 @@ public class JosmanProject {
 
     /**
      * Copies javadoc into target website according to the artifact version.
+     * 
+     * @throws JosmanIoException
+     * @throws JosmanNotFoundException
      */
     private void copyJavadoc(SemVersion version) {
         File targetJavadoc = targetJavadocDir(version);
         if (targetJavadoc.exists() && (targetJavadoc.isFile() || targetJavadoc.length() > 0)) {
-            throw new RuntimeException("Target directory for Javadoc already exists!!! " + targetJavadoc.getAbsolutePath());
+            throw new JosmanIoException("Target directory for Javadoc already exists!!! " + targetJavadoc.getAbsolutePath());
         }
         if (snapshotMode) {
             File sourceJavadoc = sourceJavadocDir(version);
@@ -835,7 +855,7 @@ public class JosmanProject {
                     LOG.info("Done copying javadoc.");
                 }
                 catch (Exception ex) {
-                    throw new RuntimeException("Error while copying Javadoc from " + sourceJavadoc.getAbsolutePath() + " to " + targetJavadoc.getAbsolutePath(), ex);
+                    throw new JosmanIoException("Error while copying Javadoc from " + sourceJavadoc.getAbsolutePath() + " to " + targetJavadoc.getAbsolutePath(), ex);
                 }
             } else {
                 LOG.log(Level.INFO, "Couldn''t find javadoc, skipping it. Looked in {0}", sourceJavadoc.getAbsolutePath());
@@ -851,7 +871,7 @@ public class JosmanProject {
                 LOG.log(Level.WARNING, "Error while fetching javadoc from Maven Central, trying to locate it at " + localJarPath, ex);
                 jardocs = new File(localJarPath);
                 if (!jardocs.exists()) {
-                    throw new RuntimeException("Couldn't find any jar for javadoc!");
+                    throw new JosmanNotFoundException("Couldn't find any jar for javadoc!");
                 }
             }
             Josmans.copyDirFromJar(jardocs, targetJavadocDir(version), "");

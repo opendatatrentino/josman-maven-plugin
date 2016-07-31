@@ -128,7 +128,7 @@ public class GitTest {
                     + " size: " + loader.getSize());
         }
         catch (Exception ex) {
-            throw new RuntimeException("Error while walkinf files", ex);
+            throw new Error("Error while walkinf files", ex);
         }
     }
 
@@ -177,7 +177,7 @@ public class GitTest {
         }
 
         catch (Exception ex) {
-            throw new RuntimeException("Error while walking directory!", ex);
+            throw new Error("Error while walking directory!", ex);
         }
     }
 
@@ -222,7 +222,7 @@ public class GitTest {
 
         }
         catch (Exception ex) {
-            throw new RuntimeException("Error while creating file!", ex);
+            throw new Error("Error while creating file!", ex);
         }
     }
 
@@ -270,7 +270,7 @@ public class GitTest {
             return dir;
         }
         catch (Exception ex) {
-            throw new RuntimeException("Error while creating new repo!", ex);
+            throw new Error("Error while creating new repo!", ex);
         }
 
     }

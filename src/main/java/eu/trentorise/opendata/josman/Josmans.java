@@ -1,8 +1,11 @@
 package eu.trentorise.opendata.josman;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import eu.trentorise.opendata.commons.NotFoundException;
 import eu.trentorise.opendata.commons.TodUtils;
+import eu.trentorise.opendata.josman.exceptions.JosmanException;
+import eu.trentorise.opendata.josman.exceptions.JosmanIoException;
+import eu.trentorise.opendata.josman.exceptions.JosmanNotFoundException;
+
 import static eu.trentorise.opendata.commons.validation.Preconditions.checkNotEmpty;
 import eu.trentorise.opendata.commons.SemVersion;
 import static eu.trentorise.opendata.josman.JosmanProject.CHANGES_MD;
@@ -15,6 +18,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -60,6 +65,8 @@ public final class Josmans {
     /**
      * Fetches all tags from a github repository. Beware of API limits of 60
      * requests per hour
+     * 
+     * @throws JosmanIoException
      */
     public static ImmutableList<RepositoryTag> fetchTags(String organization, String repoName) {
         TodUtils.checkNotEmpty(organization, "Invalid organization!");
@@ -75,7 +82,7 @@ public final class Josmans {
             return ImmutableList.copyOf(tags);
         }
         catch (Exception ex) {
-            throw new RuntimeException(ex);
+            throw new JosmanIoException(ex);
         }
 
     }
@@ -86,6 +93,8 @@ public final class Josmans {
      * @param projectPath path to project root folder (the one that _contains_
      * the .git folder)
      * @return the current branch of provided repo
+     * 
+     * @throws JosmanIoException
      */
     public static String readRepoCurrentBranch(File projectPath) {
         checkNotNull(projectPath);
@@ -98,7 +107,7 @@ public final class Josmans {
             return repo.getBranch();
         }
         catch (IOException ex) {
-            throw new RuntimeException("Couldn't read current branch from " + projectPath.getAbsolutePath());
+            throw new JosmanIoException("Couldn't read current branch from " + projectPath.getAbsolutePath());
         }
     }
 
@@ -121,7 +130,7 @@ public final class Josmans {
     /**
      * Returns a tag with given major and minor in provided list of git repository tags
      * @param repoName i.e. "josman"
-     * @throws NotFoundException if tag is not found
+     * @throws JosmanNotFoundException if tag is not found
      */
     static RepositoryTag find(String repoName, int major, int minor, Iterable<RepositoryTag> tags) {
         for (RepositoryTag tag : tags) {
@@ -131,7 +140,7 @@ public final class Josmans {
                 return tag;
             }
         }
-        throw new NotFoundException("Couldn't find any tag matching " + major + "." + minor + " pattern");
+        throw new JosmanNotFoundException("Couldn't find any tag matching " + major + "." + minor + " pattern");
     }
 
     /**
@@ -333,7 +342,7 @@ public final class Josmans {
         TodUtils.checkNotEmpty(tags, "Invalid repository tags!");
         SortedMap<String, RepositoryTag> filteredTags = Josmans.versionTags(repoName, tags);
         if (filteredTags.isEmpty()) {
-            throw new NotFoundException("Couldn't find any released version!");
+            throw new JosmanNotFoundException("Couldn't find any released version!");
         }
         return Josmans.version(repoName, filteredTags.lastKey());
     }
@@ -346,6 +355,13 @@ public final class Josmans {
     public static String htmlizePath(String path) {
         checkNotEmpty(path, "Invalid path!");
         String slashPath = path.replace("\\", "/");
+
+        try {
+            URI iri = new URI(slashPath);
+        } catch (URISyntaxException e) {
+            throw new JosmanException("Invalid path!", e);
+        }
+        
         if (slashPath.endsWith(README_MD)) {
             return slashPath.replace(README_MD, "index.html");
         } else if (slashPath.endsWith(".md")) {
@@ -388,6 +404,8 @@ public final class Josmans {
     /**
      * Fetches Javadoc of released artifact and writes it into {@code destFile}
      *     
+     * @throws JosmanIoException
+     * @throws Josman 
      */
     public static File fetchJavadoc(String groupId, String artifactId, SemVersion version) {
         checkNotEmpty(groupId, "Invalid groupId!");
@@ -401,7 +419,7 @@ public final class Josmans {
             destFile.deleteOnExit();
         }
         catch (IOException ex) {
-            throw new RuntimeException("Couldn't create target javadoc file!", ex);
+            throw new JosmanIoException("Couldn't create target javadoc file!", ex);
         }
 
         URL url;
@@ -409,7 +427,7 @@ public final class Josmans {
             url = new URL("http://repo1.maven.org/maven2/" + groupId.replace(".", "/") + "/" + artifactId + "/" + version + "/" + javadocJarName(artifactId, version));
         }
         catch (MalformedURLException ex) {
-            throw new RuntimeException("Error while forming javadoc URL!", ex);
+            throw new JosmanException("Error while forming javadoc URL!", ex);
         }
         LOG.log(Level.INFO, "Fetching javadoc from {0} into {1} ...", new Object[]{url, destFile.getAbsolutePath()});
         try {
@@ -417,7 +435,7 @@ public final class Josmans {
             LOG.log(Level.INFO, "Done copying javadoc.");
         }
         catch (IOException ex) {
-            throw new RuntimeException("Error while fetch-and-write javadoc for " + groupId + "/" + artifactId + "-" + version + " into file " + destFile.getAbsoluteFile(), ex);
+            throw new JosmanIoException("Error while fetch-and-write javadoc for " + groupId + "/" + artifactId + "-" + version + " into file " + destFile.getAbsoluteFile(), ex);
         }
         return destFile;
     }
@@ -426,6 +444,8 @@ public final class Josmans {
      * Extracts the directory at resource path to target directory. First
      * directory is searched in local "src/main/resources" so the thing also
      * works when developing in the IDE. If not found then searches in jar file.
+     * 
+     * @throws JosmanIoException
      */
     public static void copyDirFromResource(Class clazz, String dirPath, File destDir) {
         String sep = File.separator;
@@ -438,7 +458,7 @@ public final class Josmans {
                 LOG.log(Level.INFO, "Done copying directory");
             }
             catch (IOException ex) {
-                throw new RuntimeException("Couldn't copy the directory!", ex);
+                throw new JosmanIoException("Couldn't copy the directory!", ex);
             }
         } else {
             
@@ -450,7 +470,7 @@ public final class Josmans {
                     LOG.log(Level.INFO, "Done copying directory");
                 }
                 catch (IOException ex) {
-                    throw new RuntimeException("Couldn't copy the directory!", ex);
+                    throw new JosmanIoException("Couldn't copy the directory!", ex);
                 }                
             } else {
                 LOG.log(Level.INFO, "Extracting jar {0} to {1}", new Object[]{jarFile.getAbsolutePath(), destDir.getAbsolutePath()});
@@ -470,6 +490,8 @@ public final class Josmans {
      *
      * @param dirPath the prefix used for filtering. If empty the whole jar
      * content is extracted.
+     * 
+     * @throws JosmanIoException
      */
     public static void copyDirFromJar(File jarFile, File destDir, String dirPath) {
         checkNotNull(jarFile);
@@ -513,7 +535,7 @@ public final class Josmans {
             }
         }
         catch (Exception ex) {
-            throw new RuntimeException("Error while extracting jar file! Jar source: " + jarFile.getAbsolutePath() + " destDir = " + destDir.getAbsolutePath(), ex);
+            throw new JosmanIoException("Error while extracting jar file! Jar source: " + jarFile.getAbsolutePath() + " destDir = " + destDir.getAbsolutePath(), ex);
         }
     }
 
@@ -523,7 +545,7 @@ public final class Josmans {
      * resource is found it is returned as input stream, otherwise an exception
      * is thrown.
      *
-     * @throws NotFoundException if path can't be found.
+     * @throws JosmanNotFoundException if path can't be found.
      */
     public static InputStream findResourceStream(String path) {
 
@@ -546,7 +568,7 @@ public final class Josmans {
             return ret;
         }
         catch (Exception ex) {
-            throw new NotFoundException("Can't load file in resources! " + path);
+            throw new JosmanNotFoundException("Can't load file in resources! " + path);
         }
 
     }
