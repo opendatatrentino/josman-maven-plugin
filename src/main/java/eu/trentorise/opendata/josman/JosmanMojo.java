@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package eu.trentorise.opendata.josman.maven;
+package eu.trentorise.opendata.josman;
 
 import static eu.trentorise.opendata.commons.TodUtils.checkNotEmpty;
 import eu.trentorise.opendata.commons.SemVersion;

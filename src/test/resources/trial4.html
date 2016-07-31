@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>TODO supply a title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {
+                margin:0; 
+                padding:0; 
+            }
+
+            #josman-wrapper {
+                margin: 0 auto 0 auto;
+                width:701px;
+                min-height:600px;
+                height:auto;
+                background-color:#009900;
+            }
+
+            #josman-header {
+                position: fixed;
+                width: 701px; 
+                height: 100px;
+                background-color: #ccc;
+                z-index: 100;
+            }
+
+
+            #josman-content {
+                position:absolute;
+                top:100px;
+                margin-left:151px;
+                overflow: auto;
+                width:550px;  /* 701px - 151px = 550px */
+                background-color:#CC9900; 
+            }
+
+
+            #josman-sidebar {
+                position: fixed;
+                top:100px;
+                width: 151px;
+                height: 100%;
+                min-height:200px; /* just do simulate content */
+                z-index: 100;
+                background-color:#96F;
+            }            
+        </style>
+    </head>
+    <body>
+        <div id="josman-wrapper">
+            <div id="josman-header">Fixed header</div>
+            <div id="josman-content">
+                <p>Dummy Text</p><br /><br /><br />
+                <p>Dummy Text</p><br /><br /><br />
+                <p>Dummy Text</p><br /><br /><br />
+                <p>Dummy Text</p><br /><br /><br />
+                <p>Dummy Text</p><br /><br /><br />
+                <p>Dummy Text</p><br /><br /><br />
+                <p>Dummy Text</p><br /><br /><br />
+                <p>Dummy Text</p><br /><br /><br />
+            </div>
+            <div id="josman-sidebar">Fixed sidebar</div>
+        </div>
+    </body>
+</html>
