@@ -60,6 +60,16 @@ public class JosmansTest {
     @Test
     public void testHtmlizePath() {
         assertEquals("docs/BLA.html", Josmans.htmlizePath("docs\\BLA.md"));
+        
+        assertEquals("a.html#f", Josmans.htmlizePath("a.html#f"));
+        assertEquals("a.html#f", Josmans.htmlizePath("a.md#f"));
+                
+        assertEquals("a.html?q", Josmans.htmlizePath("a.html?q"));
+        assertEquals("a.html?q#f", Josmans.htmlizePath("a.html?q#f"));
+        
+        assertEquals("a.html?q", Josmans.htmlizePath("a.md?q"));
+        assertEquals("a.html?q#f", Josmans.htmlizePath("a.md?q#f"));
+        
         assertEquals("some/Path", Josmans.htmlizePath("some/Path/"));
         assertEquals("/", Josmans.htmlizePath("\\"));
 

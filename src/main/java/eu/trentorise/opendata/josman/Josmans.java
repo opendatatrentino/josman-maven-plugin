@@ -350,29 +350,50 @@ public final class Josmans {
     /**
      * Returns a new url friendly and normalized path.
      *
-     * @param path a path that may contain .md files
+     * @param path a path that may contain .md files and can have end like urls 
+     * like my/path/to/file.md?query#fragment
      */
     public static String htmlizePath(String path) {
         checkNotEmpty(path, "Invalid path!");
         String slashPath = path.replace("\\", "/");
 
+        URI uri;
         try {
-            URI iri = new URI(slashPath);
+            uri = new URI(slashPath);           
         } catch (URISyntaxException e) {
             throw new JosmanException("Invalid path!", e);
         }
-        
-        if (slashPath.endsWith(README_MD)) {
-            return slashPath.replace(README_MD, "index.html");
-        } else if (slashPath.endsWith(".md")) {
-            return slashPath.substring(0, slashPath.length() - 3) + ".html";
-        }
-        String ret = TodUtils.removeTrailingSlash(slashPath);
-        if (ret.length() == 0) {
-            return "/";
+
+        String newPath;
+        String normalizedPath = TodUtils.removeTrailingSlash(uri.getPath());
+        if (normalizedPath.endsWith(README_MD)) {
+            newPath = uri.getPath().replace(README_MD, "index.html");
+        } else if (normalizedPath.endsWith(".md")) {
+            newPath = normalizedPath.substring(0, normalizedPath.length() - 3) + ".html";
+        } else if (normalizedPath.isEmpty()){
+            newPath = "/";
         } else {
-            return ret;
+            newPath = normalizedPath;
         }
+        
+        StringBuilder ret = new StringBuilder();
+        if (TodUtils.isNotEmpty(uri.getScheme())){
+            ret.append(uri.getScheme() + "://");
+        }
+        if (TodUtils.isNotEmpty(uri.getAuthority())){
+            ret.append(uri.getAuthority());
+        }
+        ret.append(newPath);
+        
+        if (TodUtils.isNotEmpty(uri.getQuery())){
+            ret.append("?" + uri.getQuery());
+        }
+        if (TodUtils.isNotEmpty(uri.getFragment())){
+            ret.append("#" + uri.getFragment());
+        }
+        
+        return ret.toString();        
+        
     }
 
     /**
