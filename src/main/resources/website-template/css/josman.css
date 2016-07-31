@@ -9,7 +9,15 @@ body {
     background-size: cover;
     font-family: Arial, Georgia, Serif;
 }
- 
+
+table {
+    border-collapse: collapse;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+  	padding:5px;
+}  
 
 #josman-wrapper {
     margin: 0 auto 0 auto;
