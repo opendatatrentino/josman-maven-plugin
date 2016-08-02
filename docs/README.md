@@ -68,6 +68,31 @@ To ignore some version, you can use `ignoredVersions`:
 
 Some examples can be found in [tests](tests.md) page. Keep in mind not all Github features are supported by <a href="https://github.com/sirthias/pegdown" target="_blank"> PegDown </a>, the Markdown-to-Html conversion library we use (some further tweaks to the generated HTML are done with <a href="http://jodd.org/doc/jerry" target="_blank"> Jerry</a>)
 
+### Executing Java commands
+
+Josman has some limited support for executing Java commands with `$exec{cmd}`: 
+ Strings in this format will be replaced by the evaluation of the corresponding Java static 
+ method or static field value. 
+  
+  <b>Supported syntax</b>:
+  
+  <ul>
+  <li>methods: `$exec{my.package.MyClass.myMethod()}`</li>
+  <li>fields: `$exec{my.package.MyClass.myField}`</li>
+  <li>Spaces inside the parenthesis: `$exec{ my.package.MyClass.myField }`</li>
+  <li>Escape with `$_`: `$_exec{something}` will produce `$exec{something}` without trying to execute anything
+  </li>  
+  </ul>
+  
+  <b>NOT supported</b>:
+  <ul>
+  <li>method with parameters: `$exec{my.package.MyClass.myMethod("bla bla")}`</li>
+  <li>method chains: `$exec{my.package.MyClass.myMethod().anotherMethod()}`</li>
+  <li>classes: `$exec{my.package.MyClass}`</li>
+  <li>unqualified classes: `$exec{MyClass.myMethod()}`</li>
+  <li>new instances: `$exec{new my.package.MyClass()}`</li>
+  </ul>
+
 ### Sending site to Github
 
 A good companion to Josman is <a href="https://github.github.com/maven-plugins/site-plugin/" target="_blank"> GitHub Site Plugin</a> that allows sending the generated website to origin repository in the `gh-pages` branch, so that it will be served by Github on `myorganization.github.io/myrepo` urls.

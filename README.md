@@ -15,7 +15,16 @@ Maven plugin for managing Java open source programs.
 | See [docs](docs) |Business-friendly [Apache License v2.0](LICENSE.txt) | See [project milestones](../../milestones) | See [the wiki](../../wiki)|
 
 
-#### Main ideas
+**Features:**
+  
+  * integrated with Github
+  * supports <a href="http://semver.org" target="_blank">semantic versioning</a>
+  * supports limited variable replacement
+  * allows limited evalution of static Java methods and field names  
+  * supports Maven 3
+  * supports Java 7+
+
+#### Workflow
 
 Josman is modeled after this workflow, where you:
 

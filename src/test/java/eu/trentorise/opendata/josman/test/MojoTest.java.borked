@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package eu.trentorise.opendata.josman.maven.test;
+package eu.trentorise.opendata.josman.test;
 
 
 
 import eu.trentorise.opendata.commons.TodConfig;
-import eu.trentorise.opendata.josman.maven.SiteMojo;
+import eu.trentorise.opendata.josman.SiteMojo;
 import java.io.File;
 import java.util.logging.Logger;
 import org.apache.maven.model.Model;

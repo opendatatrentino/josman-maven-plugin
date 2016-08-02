@@ -1,7 +1,6 @@
 package eu.trentorise.opendata.josman.test;
 
 import eu.trentorise.opendata.commons.TodConfig;
-import eu.trentorise.opendata.commons.TodUtils;
 import eu.trentorise.opendata.commons.validation.Preconditions;
 
 import java.io.FileInputStream;

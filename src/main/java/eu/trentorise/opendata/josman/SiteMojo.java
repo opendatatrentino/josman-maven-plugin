@@ -16,8 +16,15 @@
 package eu.trentorise.opendata.josman;
 
 import eu.trentorise.opendata.josman.JosmanProject;
+
+import java.net.URL;
+
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.descriptor.PluginDescriptor;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /**
  * This mojo creates a site with documentation for all released versions of a
@@ -25,18 +32,19 @@ import org.apache.maven.plugins.annotations.Mojo;
  * Github, they should also work in the generated website.
  *
  */
-@Mojo(name = "site")
+@Mojo(name = "site", requiresDependencyResolution=ResolutionScope.TEST)
 public class SiteMojo extends JosmanMojo {
 
     public SiteMojo() {
         super("JOSMAN SITE");
     }
+    
 
     @Override
     public void execute() throws MojoExecutionException {
 
-        JosmanProject josman = loadProjectInfo();
-
+        JosmanProject josman = loadProjectInfo();      
+        
         try {
             josman.generateSite();
         }

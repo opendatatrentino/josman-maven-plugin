@@ -12,21 +12,39 @@ import eu.trentorise.opendata.commons.SemVersion;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import jodd.jerry.Jerry;
 import jodd.jerry.JerryFunction;
 import org.apache.commons.io.FileUtils;
+import org.apache.maven.RepositoryUtils;
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.artifact.DependencyResolutionRequiredException;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.project.DefaultDependencyResolutionRequest;
+import org.apache.maven.project.DependencyResolutionException;
+import org.apache.maven.project.DependencyResolutionResult;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.ProjectDependenciesResolver;
 import org.eclipse.egit.github.core.RepositoryTag;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.SortedMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -44,6 +62,7 @@ import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.parboiled.common.ImmutableList;
 import org.pegdown.Parser;
 import org.pegdown.PegDownProcessor;
+import org.sonatype.aether.RepositorySystemSession;
 
 /**
  * Represents a Josman project, holding information about maven and git repository.
@@ -106,13 +125,36 @@ public class JosmanProject {
         }
 
     }
+    
 
+    /**
+     * @deprecated just for debugging
+     * @since 0.8.0
+     */
+    private void showArtifacts(){
+        List<Artifact> testArtifacts = mvnPrj.getTestArtifacts();
+        
+        System.out.println("test artifacts...");
+        for (Artifact art : testArtifacts){
+            System.out.println("test art jar = " + art.getFile().getAbsolutePath());
+        }
+        
+        Set<Artifact> artifacts = mvnPrj.getArtifacts();
+        
+        System.out.println("artifacts...");
+        for (Artifact art : artifacts){
+            System.out.println("test art jar = " + art.getFile().getAbsolutePath());
+        }
+    }
+    
     /**
      *
      * @param snapshotMode if true the website generator will only process the
      * current branch snapshot. Otherwise all released versions except
      * {@code ignoredVersions} will be processed,
      *
+     * @throws JosmanException
+     * @since 0.8.0
      */
     public JosmanProject(
             MavenProject mvnPrj,
@@ -120,10 +162,18 @@ public class JosmanProject {
             String pagesDirPath,
             List<SemVersion> ignoredVersions,
             boolean snapshotMode) {
-               
+
         checkNotNull(mvnPrj, "Invalid Maven project!");
-        checkNotNull(sourceRepoDirPath, "Invalid repository source docs dir path!");
-        checkNotNull(pagesDirPath, "Invalid pages dir path!");
+        checkNotEmpty(mvnPrj.getUrl(), "Invalid url!");
+        
+        checkNotEmpty(mvnPrj.getArtifactId(), "Invalid artifactId!");
+        checkArgument(!MavenProject.EMPTY_PROJECT_ARTIFACT_ID.equals(mvnPrj.getArtifactId()), "Invalid artifactId: " + mvnPrj.getArtifactId());        
+        checkNotEmpty(mvnPrj.getGroupId(), "Invalid groupId!");
+        checkArgument(!MavenProject.EMPTY_PROJECT_GROUP_ID.equals(mvnPrj.getGroupId()), "Invalid groupId: " + mvnPrj.getGroupId());
+        checkNotEmpty(mvnPrj.getVersion(), "Invalid version!");        
+        
+        checkNotNull(sourceRepoDirPath, "Invalid repository source dir path!");
+        checkNotEmpty(pagesDirPath, "Invalid pages dir path!");
         checkNotNull(ignoredVersions, "Invalid versions to ignore!");
         
         this.mvnPrj = mvnPrj;
@@ -146,8 +196,47 @@ public class JosmanProject {
                 | Parser.FENCED_CODE_BLOCKS
                 | Parser.WIKILINKS
                 | Parser.STRIKETHROUGH // not supported in netbeans flow 2.0 yet
-                | Parser.ANCHORLINKS // not supported in netbeans flow 2.0 yet		
+                | Parser.ANCHORLINKS // not supported in netbeans flow 2.0 yet      
         );
+        
+        addClasspaths();
+    }
+
+    /**
+     * Needed for $exec{cmd} so we can use test classes AND dependencies.
+     * The solution is taken from <a href="http://stackoverflow.com/a/16263482" target="_blank">here</a>
+     * 
+     * @since 0.8.0
+     */
+    private void addClasspaths() {
+
+        try {
+            Set<URL> urls = new HashSet<>();
+                        
+            LOG.fine("test classpath elements...");
+            List<String> elements = mvnPrj.getTestClasspathElements();
+            //getRuntimeClasspathElements()            
+            //getCompileClasspathElements()
+            //getSystemClasspathElements()
+            for (String element : elements) {
+                LOG.fine("test classpath element = " + element);
+                try {
+                    urls.add(new File(element).toURI().toURL());
+                } catch (MalformedURLException ex) {            
+                    throw new JosmanException("Something went wrong!", ex);
+                }
+            }
+            
+            ClassLoader contextClassLoader = URLClassLoader.newInstance(
+                    urls.toArray(new URL[0]),
+                    Thread.currentThread().getContextClassLoader());
+
+            Thread.currentThread().setContextClassLoader(contextClassLoader);
+
+        } catch (DependencyResolutionRequiredException ex) {
+            throw new JosmanException(ex);
+        }        
+
     }
 
     private File sourceDocsDir() {
@@ -268,7 +357,7 @@ public class JosmanProject {
             throw new JosmanIoException("Couldn't read source md stream! Target path is " + targetFile.getAbsolutePath(), ex);
         }
 
-        Josmans.checkNotMeaningful(sourceMdString, "Invalid source md file!");
+        Josmans.checkNotMeaningful(sourceMdString, "Invalid source md file: " + relPath);
 
         String filteredSourceMdString = sourceMdString
                 .replaceAll("#\\{version}", version.toString())
@@ -276,6 +365,10 @@ public class JosmanProject {
                 .replaceAll("#\\{repoRelease}", Josmans.repoRelease(Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId(), version))
                 .replaceAll("jedoc", "josman"); // for legacy compat 
         
+        filteredSourceMdString = Josmans.execCmds(filteredSourceMdString,
+                Thread.currentThread()
+                .getContextClassLoader());
+                
         String skeletonString;
         try {
             StringWriter writer = new StringWriter();
@@ -386,7 +479,7 @@ public class JosmanProject {
         // cleaning example versions
         skeleton.$(".josman-version-tab-header").remove();
 
-        List<RepositoryTag> tags = new ArrayList(Josmans.versionTagsToProcess(mvnPrj.getArtifactId(), repoTags, ignoredVersions).values());
+        List<RepositoryTag> tags = new ArrayList<RepositoryTag>(Josmans.versionTagsToProcess(mvnPrj.getArtifactId(), repoTags, ignoredVersions).values());
         Collections.reverse(tags);
 
         if (Josmans.isRootpath(relPath)) {
@@ -447,6 +540,7 @@ public class JosmanProject {
 
     }
 
+
     private static void addVersionHeaderTag(Jerry skeleton, String prependedPath, SemVersion version, boolean selected) {
         String verShortName = Josmans.majorMinor(version);
         String classSelected = selected ? "josman-tag-selected" : "";
@@ -487,7 +581,7 @@ public class JosmanProject {
         checkNotNull(version);
 
         if (!sourceDocsDir().exists()) {
-            throw new JosmanIoException("Can't find source dir!" + sourceDocsDir().getAbsolutePath());
+            throw new JosmanIoException("Can't find source dir! " + sourceDocsDir().getAbsolutePath());
         }
 
         File targetVersionDir = targetVersionDir(version);
@@ -558,7 +652,7 @@ public class JosmanProject {
 
             TreeWalk relPathsWalk = makeGitDocsWalk(tree, DOCS_FOLDER);
 
-            List<String> relpaths = new ArrayList();
+            List<String> relpaths = new ArrayList<String>();
             while (relPathsWalk.next()) {
                 String pathString = relPathsWalk.getPathString();
 
@@ -679,8 +773,8 @@ public class JosmanProject {
      */
     public void generateSite() {
 
-        LOG.log(Level.INFO, "Fetching {0}/{1} tags.", new Object[]{Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId()});
-        repoTags = Josmans.fetchTags(Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId());
+        
+        
         MavenXpp3Reader reader = new MavenXpp3Reader();             
         
         try {
@@ -697,7 +791,7 @@ public class JosmanProject {
 
         LOG.log(Level.INFO, "Cleaning target: {0}  ....", pagesDir.getAbsolutePath());
         if (!pagesDir.getAbsolutePath().endsWith("site")) {
-            throw new JosmanException("target directory does not end with 'site' !");
+            throw new JosmanException("target directory does not end with 'site': " + pagesDir.getAbsolutePath());
         }
         try {
             FileUtils.deleteDirectory(pagesDir);
@@ -717,6 +811,10 @@ public class JosmanProject {
             createLatestDocsDirectory(snapshotVersion);
 
         } else {
+            LOG.log(Level.INFO, "Fetching {0}/{1} tags.", new Object[]{Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId()});
+            
+            repoTags = Josmans.fetchTags(Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId());
+            
             if (repoTags.isEmpty()) {
                 throw new JosmanNotFoundException("There are no tags at all in the repository!!");
             }

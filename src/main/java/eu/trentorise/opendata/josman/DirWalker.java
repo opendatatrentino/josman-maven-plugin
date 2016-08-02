@@ -3,6 +3,7 @@ package eu.trentorise.opendata.josman;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static eu.trentorise.opendata.commons.TodUtils.checkNotEmpty;
 import eu.trentorise.opendata.commons.SemVersion;
+import eu.trentorise.opendata.commons.validation.Preconditions;
 import eu.trentorise.opendata.josman.exceptions.JosmanException;
 import eu.trentorise.opendata.josman.exceptions.JosmanIoException;
 import eu.trentorise.opendata.josman.exceptions.JosmanNotFoundException;
@@ -55,7 +56,12 @@ public class DirWalker extends DirectoryWalker {
         }
         checkNotNull(josman);
         checkNotNull(version);
-        checkNotEmpty(relPaths, "Invalid relative paths");
+        checkNotNull(relPaths, "Invalid relative paths!");
+        
+        if (relPaths.isEmpty()){
+            throw new JosmanIoException("Docs directory is empty: " + sourceRoot.getAbsolutePath() 
+            + "\n Required files: " + Josmans.requiredDocs(""));
+        }
         this.sourceRoot = sourceRoot;
         this.destinationRoot = destinationRoot;
         this.project = josman;
