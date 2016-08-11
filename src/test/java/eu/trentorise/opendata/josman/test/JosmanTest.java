@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.model.Build;
@@ -29,6 +30,8 @@ import eu.trentorise.opendata.josman.Josmans;
  */
 public class JosmanTest {
 
+    private static final Logger LOG = Logger.getLogger(JosmanTest.class.getName());    
+    
     public static final String MINIMAL_REPO_PATH = "src/test/resources/minimal-repo";
 
     
@@ -157,12 +160,77 @@ public class JosmanTest {
         
         
     }
+
+    /** 
+     * @since 0.8.0
+     */
+    @Test
+    public void testVariables() throws IOException {
+        
+        MavenProject mvnPrj = createMinimalProject();
+                        
+        File sourceRepo = createMinimalRepo();
+        
+        final String EVAL_TEST = "EvalTest";
+        
+        File f = new File(sourceRepo, "docs/"+ EVAL_TEST + ".md");
+        f.createNewFile();
+            
+        
+        try(  PrintWriter out = new PrintWriter( f)  ){                       
+            out.println("a${project.version} b${josman.majorMinorVersion} c${josman.repoRelease}");            
+            out.println("d$_{project.version} e$_{josman.majorMinorVersion} f$_{josman.repoRelease}   " );
+            out.println("g#{version} h#{majorMinorVersion} i#{repoRelease} " );
+            out.println("l#_{version} m#_{majorMinorVersion} n#_{repoRelease} " );            
+            out.close();
+        }
+               
+        String sourceRepoDirPath = sourceRepo.getAbsolutePath();
+        String pagesDirPath = folder.newFolder("site")
+                .getAbsolutePath();
+        List<SemVersion> ignoredVersions = new ArrayList<>();
+        boolean snapshotMode = true;
+
+        JosmanProject prj = new JosmanProject(mvnPrj,
+                sourceRepoDirPath,
+                pagesDirPath,
+                ignoredVersions,
+                snapshotMode);
+
+        prj.generateSite();
+        
+        String output = FileUtils.readFileToString(
+                new File(pagesDirPath, Josmans.majorMinor(SemVersion.of(mvnPrj.getVersion())) + "/"+EVAL_TEST+".html"), "UTF-8");
+        
+        LOG.fine(output);
+        
+        assertTrue(output.contains("a"+mvnPrj.getVersion()));
+        assertTrue(output.contains("b"+Josmans.majorMinor(SemVersion.of(mvnPrj.getVersion()))));        
+        assertTrue(output.contains("c"+Josmans.repoRelease(Josmans.organization(mvnPrj.getUrl()),
+                mvnPrj.getArtifactId(), SemVersion.of(mvnPrj.getVersion()))));
+
+
+        assertTrue(output.contains("d${project.version}"));        
+        assertTrue(output.contains("e${josman.majorMinorVersion}"));
+        assertTrue(output.contains("f${josman.repoRelease}"));
+
+        assertTrue(output.contains("g"+mvnPrj.getVersion()));
+        assertTrue(output.contains("h"+Josmans.majorMinor(SemVersion.of(mvnPrj.getVersion()))));        
+        assertTrue(output.contains("i"+Josmans.repoRelease(Josmans.organization(mvnPrj.getUrl()),
+                mvnPrj.getArtifactId(), SemVersion.of(mvnPrj.getVersion()))));               
+                
+        assertTrue(output.contains("l#{version}"));        
+        assertTrue(output.contains("m#{majorMinorVersion}"));
+        assertTrue(output.contains("n#{repoRelease}"));
+        
+    }
+    
     
     /**
      * @since 0.8.0
      */
     @Test
-    public void testEvalDocs() throws IOException{
+    public void testEvalDocs() throws IOException {
         MavenProject mvnPrj = createMinimalProject();
                         
         File sourceRepo = createMinimalRepo();

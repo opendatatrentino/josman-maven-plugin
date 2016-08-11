@@ -428,14 +428,29 @@ public class JosmanProject {
         Josmans.checkNotMeaningful(sourceMdString, "Invalid source md file: " + relPath);
 
         String filteredSourceMdString = sourceMdString
+                                                        // '#' for legacy compat
                                                       .replaceAll("#\\{version}", version.toString())
                                                       .replaceAll("#\\{majorMinorVersion}", Josmans.majorMinor(version))
                                                       .replaceAll("#\\{repoRelease}",
                                                               Josmans.repoRelease(Josmans.organization(mvnPrj.getUrl()),
                                                                       mvnPrj.getArtifactId(), version))
-                                                      .replaceAll("jedoc", "josman"); // for
-                                                                                      // legacy
-                                                                                      // compat
+                                                      .replaceAll("#_\\{version}", "#{version}")
+                                                      .replaceAll("#_\\{majorMinorVersion}", "#{majorMinorVersion}")
+                                                      .replaceAll("#_\\{repoRelease}", "#{repoRelease}")                                                       
+                                                      
+                                                      .replaceAll("jedoc", "josman")
+                                                      
+                                                      
+                                                       .replaceAll("\\$\\{project.version}", version.toString())
+                                                       .replaceAll("\\$\\{josman.majorMinorVersion}", Josmans.majorMinor(version))
+                                                       .replaceAll("\\$\\{josman.repoRelease}",
+                                                                Josmans.repoRelease(Josmans.organization(mvnPrj.getUrl()),
+                                                                        mvnPrj.getArtifactId(), version))
+                                                       .replaceAll("\\$_\\{project.version}", "\\${project.version}")
+                                                       .replaceAll("\\$_\\{josman.majorMinorVersion}", "\\${josman.majorMinorVersion}")
+                                                       .replaceAll("\\$_\\{josman.repoRelease}", "\\${josman.repoRelease}");                                                       
+                                                       
+        
 
         filteredSourceMdString = Josmans.expandExprs(filteredSourceMdString,
                 evals,

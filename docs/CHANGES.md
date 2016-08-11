@@ -1,5 +1,21 @@
 
+JOSMAN MAVEN PLUGIN #{version} RELEASE NOTES
+-----------------------------------
+
+http://opendatatrentino.github.io/josman-maven-plugin  
+
+
+
+
 ## Release Notes
+
+### 0.8.0 
+
+todo date
+
+- merged Josman project into this one.
+- implemented $eval{EXPR} command
+
 
 ### 0.7.0
 - using tod-super-pom 1.3.0
