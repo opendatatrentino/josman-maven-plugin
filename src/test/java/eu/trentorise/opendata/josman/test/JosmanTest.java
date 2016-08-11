@@ -7,7 +7,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.model.Build;
@@ -105,31 +107,32 @@ public class JosmanTest {
         }
     }
     
-    /**
-     * @throws IOException 
+    /** 
      * @since 0.8.0
      */
     @Test
-    public void testExec() throws IOException {
+    public void testEval() throws IOException {
         
         MavenProject mvnPrj = createMinimalProject();
                 
         
         File sourceRepo = createMinimalRepo();
         
-        final String EXEC_TEST = "ExecTest";
+        final String EVAL_TEST = "EvalTest";
         
-        File f = new File(sourceRepo, "docs/"+EXEC_TEST + ".md");
+        File f = new File(sourceRepo, "docs/"+ EVAL_TEST + ".md");
         f.createNewFile();
             
         
         try(  PrintWriter out = new PrintWriter( f)  ){
-            //out.println( "$exec{" + this.getClass().getCanonicalName() + ".testString()}" );           
-                                                          
-            out.println( "$exec{java.lang.System.out} AND $exec{java.lang.System.getProperties()}" );
+            out.println( "$eval{java.lang.System.in} AND $evalNow{java.lang.System.out} AND $evalNow{java.lang.System.getProperties()}" );
             out.close();
         }
         
+        Map<String, String> evals = new HashMap<>();
+        evals.put("java.lang.System.in", java.lang.System.in.toString());
+        
+        Josmans.saveEvalMap(evals, new File(sourceRepo, "target/apidocs/" + JosmanProject.RELATIVE_EVAL_FILEPATH));
         
         String sourceRepoDirPath = sourceRepo.getAbsolutePath();
         String pagesDirPath = folder.newFolder("site")
@@ -146,12 +149,50 @@ public class JosmanTest {
         prj.generateSite();
         
         String output = FileUtils.readFileToString(
-                new File(pagesDirPath, Josmans.majorMinor(SemVersion.of(mvnPrj.getVersion())) + "/"+EXEC_TEST+".html"), "UTF-8");
+                new File(pagesDirPath, Josmans.majorMinor(SemVersion.of(mvnPrj.getVersion())) + "/"+EVAL_TEST+".html"), "UTF-8");
         
-        assertTrue(output.contains("java.runtime.name"));
-        
+        assertTrue(output.contains(System.in.toString()));
+        assertTrue(output.contains("java.runtime.name"));        
         assertTrue(output.contains(System.out.toString()));
         
+        
+    }
+    
+    /**
+     * @since 0.8.0
+     */
+    @Test
+    public void testEvalDocs() throws IOException{
+        MavenProject mvnPrj = createMinimalProject();
+                        
+        File sourceRepo = createMinimalRepo();
+        
+        final String EVAL_TEST = "EvalTest";
+        
+        File f = new File(sourceRepo, "docs/"+ EVAL_TEST + ".md");
+        f.createNewFile();
+            
+        
+        try(  PrintWriter out = new PrintWriter( f)  ){                                                          
+            out.println( "$eval{java.lang.System.in} AND $evalNow{java.lang.System.out}" );
+            out.close();
+        }
+               
+        String sourceRepoDirPath = sourceRepo.getAbsolutePath();
+        String pagesDirPath = folder.newFolder("site")
+                .getAbsolutePath();
+        List<SemVersion> ignoredVersions = new ArrayList<>();
+        boolean snapshotMode = true;
+
+        JosmanProject prj = new JosmanProject(mvnPrj,
+                sourceRepoDirPath,
+                pagesDirPath,
+                ignoredVersions,
+                snapshotMode);
+
+        prj.evalDocs();
+        
+        prj.generateSite();
     }
     
 }

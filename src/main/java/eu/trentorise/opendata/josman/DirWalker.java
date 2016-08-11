@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.concurrent.Immutable;
@@ -34,6 +35,7 @@ public class DirWalker extends DirectoryWalker {
     private JosmanProject project;
     private SemVersion version;
     private List<String> relPaths;
+    private Map<String, String> evals;
 
     /**
      * @throws JosmanNotFoundException if source root doesn't exists    
@@ -43,7 +45,8 @@ public class DirWalker extends DirectoryWalker {
                     File destinationRoot, 
                     JosmanProject josman, 
                     SemVersion version,
-                    List<String> relPaths
+                    List<String> relPaths,
+                    Map<String, String> evals
     ) {
         super();
         checkNotNull(sourceRoot);
@@ -57,6 +60,7 @@ public class DirWalker extends DirectoryWalker {
         checkNotNull(josman);
         checkNotNull(version);
         checkNotNull(relPaths, "Invalid relative paths!");
+        checkNotNull(evals, "Invalid evals!");
         
         if (relPaths.isEmpty()){
             throw new JosmanIoException("Docs directory is empty: " + sourceRoot.getAbsolutePath() 
@@ -67,6 +71,7 @@ public class DirWalker extends DirectoryWalker {
         this.project = josman;
         this.version = version;
         this.relPaths = relPaths;
+        this.evals = evals;
     }
 
     /**
@@ -116,7 +121,8 @@ public class DirWalker extends DirectoryWalker {
                             new FileInputStream(file), 
                             JosmanProject.DOCS_FOLDER + "/" + targetRelPath, 
                             version,
-                            relPaths));
+                            relPaths,
+                            evals));
     }
 
     public File getSourceRoot() {

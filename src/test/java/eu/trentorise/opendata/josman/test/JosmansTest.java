@@ -2,13 +2,25 @@ package eu.trentorise.opendata.josman.test;
 
 import eu.trentorise.opendata.commons.TodConfig;
 import eu.trentorise.opendata.josman.Josmans;
+import eu.trentorise.opendata.josman.exceptions.ExprNotFoundException;
 import eu.trentorise.opendata.josman.exceptions.JosmanException;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 import org.junit.Assert;
 import static org.junit.Assert.assertEquals;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  *
@@ -22,6 +34,9 @@ public class JosmansTest {
      * @since 0.8.0
      */
     public static final String TEST_STRING = "test string";
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     
     @BeforeClass
@@ -125,16 +140,47 @@ public class JosmansTest {
     public static int withParams(int i){
         return i;
     }
+
     
+    /**
+     * @since 0.8.0
+     */
+    @Test
+    public void testEval(){
+        String output = Josmans.expandExprs("$eval{a.b}"
+                + "-$eval{c.d()}" ,
+                ImmutableMap.of("a.b","1", "c.d()","2"),
+                this.getClass().getClassLoader());
+        
+        assertEquals("1-2", output);
+    }    
 
     /**
      * @since 0.8.0
      */
     @Test
-    public void testExec(){
-        String output = Josmans.execCmds("$exec{"+this.getClass().getCanonicalName() + ".number()}"
-                + "-$exec{"+this.getClass().getCanonicalName()+".TEST_STRING}" ,
-                        this.getClass().getClassLoader());
+    public void testEvalMissingExpr(){
+        
+        try {
+        Josmans.expandExprs("$eval{a.b}}" ,
+                Collections.EMPTY_MAP,
+                this.getClass().getClassLoader());
+        Assert.fail("Shouldn't arrive here!");
+        } catch (ExprNotFoundException ex){
+            
+        }        
+    }    
+    
+    
+    /**
+     * @since 0.8.0
+     */
+    @Test
+    public void testEvalNow(){
+        String output = Josmans.expandExprs("$evalNow{"+this.getClass().getCanonicalName() + ".number()}"
+                + "-$evalNow{"+this.getClass().getCanonicalName()+".TEST_STRING}" ,
+                Collections.EMPTY_MAP,
+                this.getClass().getClassLoader());
         
         assertEquals("3-"+TEST_STRING, output);
     }
@@ -143,8 +189,9 @@ public class JosmansTest {
      * @since 0.8.0
      */
     @Test
-    public void testExecSpaces(){
-        String output = Josmans.execCmds("a$exec{ "+this.getClass().getCanonicalName() + ".number() }b",
+    public void testEvalNowSpaces(){
+        String output = Josmans.expandExprs("a$evalNow{ "+this.getClass().getCanonicalName() + ".number() }b",
+                Collections.EMPTY_MAP,
                 this.getClass().getClassLoader());        
         
         assertEquals("a3b", output);
@@ -154,8 +201,9 @@ public class JosmansTest {
      * @since 0.8.0
      */
     @Test
-    public void testExecEmpty(){
-        String output = Josmans.execCmds("",
+    public void testEvalEmpty(){
+        String output = Josmans.expandExprs("",
+                Collections.EMPTY_MAP,
                 this.getClass().getClassLoader());        
         
         assertEquals("", output);
@@ -165,10 +213,11 @@ public class JosmansTest {
      * @since 0.8.0
      */
     @Test
-    public void testExecParameters(){
+    public void testEvalParameters(){
         
         try {
-            Josmans.execCmds("a$exec{ "+this.getClass().getCanonicalName() + ".withParams(4) }b",
+            Josmans.expandExprs("a$evalNow{ "+this.getClass().getCanonicalName() + ".withParams(4) }b",
+                    Collections.EMPTY_MAP,
                     this.getClass().getClassLoader());
             Assert.fail("Params shouldn't be supported!");
         } catch (JosmanException ex){
@@ -182,8 +231,29 @@ public class JosmansTest {
      * @since 0.8.0
      */
     @Test
-    public void testVerbatimExec(){
-        String output = Josmans.execCmds("$_exec{a}", this.getClass().getClassLoader());
-        assertEquals("$exec{a}", output);
+    public void testVerbatimEvalNow(){
+        String output = Josmans.expandExprs("$_evalNow{a}",
+                Collections.EMPTY_MAP,
+                this.getClass().getClassLoader());
+        assertEquals("$evalNow{a}", output);
+    }
+    
+    /**
+     * @since 0.8.0
+     */
+    @Test
+    public void testBastardCsv() throws IOException{
+        HashMap<String,String> evals = new HashMap();
+        String BASTARD_STRING1 = "nasty 1 \"\'\n\n ( < >\r \t";
+        String BASTARD_STRING2 = "nasty 2 \"\'\n( < >\r \t";
+        evals.put("k1", BASTARD_STRING1);
+        evals.put("k2", BASTARD_STRING2);
+        File file = folder.newFile("eval.csv");
+        Josmans.saveEvalMap(evals, file);
+        
+        Map<String, String> readMap = Josmans.loadEvalMap(file);
+        assertEquals(evals.size(), readMap.size());
+        assertEquals(evals.get("k1"), readMap.get("k1"));
+        assertEquals(evals.get("k2"), readMap.get("k2"));        
     }
 }

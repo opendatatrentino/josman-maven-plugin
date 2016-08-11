@@ -68,30 +68,76 @@ To ignore some version, you can use `ignoredVersions`:
 
 Some examples can be found in [tests](tests.md) page. Keep in mind not all Github features are supported by <a href="https://github.com/sirthias/pegdown" target="_blank"> PegDown </a>, the Markdown-to-Html conversion library we use (some further tweaks to the generated HTML are done with <a href="http://jodd.org/doc/jerry" target="_blank"> Jerry</a>)
 
-### Executing Java commands
+### Executing Java expressions
 
-Josman has some limited support for executing Java commands with `$exec{cmd}`: 
- Strings in this format will be replaced by the evaluation of the corresponding Java static 
- method or static field value. 
+Josman has some limited support for executing Java commands with `$eval{EXPR}`: strings in this format will be replaced by the evaluation of the corresponding Java expression.
+ 
+The workflow to compute the evaluations is the following:
+ 
+1. Expressions are evaluated by default at `prepare package` phase 
+2. Evaluated expressions are stored as javadocs resource in CSV file `target/apidocs/resources/josman-eval.csv`
+3. Once the CSV file is present, it is possible to generate the site
+
+Having evaluated expressions in the javadoc jar makes possible to regenerate the site without the need to recalculate expressions for older versions of the software.
   
-  <b>Supported syntax</b>:
+Expressions are executed by default at `prepare package` with eval mojo, which can also be called manually by issuing 
+
+```
+mvn josman:eval
+``` 
+
+Evaluation is done using the classpath environment for tests, and evaluations results are put in file `target/apidocs/resources/josman-eval.csv` so they can be permanently packaged in the javadoc jar. 
+
+Once evaluation file is created, it is then possible to generate the site by issuing
+
+```
+mvn josman:site
+``` 
+
+#### Manual evaluation
+
+If you want to create the file `target/apidocs/resources/josman-eval.csv` with some custom process (i.e. because you have [issues with capturing logging](https://github.com/opendatatrentino/josman-maven-plugin/issues/17)), you can tell josman to skip evaluation with `skipEval` flag, i.e. in the `pom.xml` you can write like this:
+
+```xml
+
+	<plugin>
+		<groupId>eu.trentorise.opendata</groupId>
+		<artifactId>josman-maven-plugin</artifactId>
+		<version>0.8.0-SNAPSHOT</version>
+		
+		<configuration>
+			<skipEval>true</skipEval>
+		</configuration>		
+	</plugin>
+
+
+```
+
   
-  <ul>
-  <li>methods: `$exec{my.package.MyClass.myMethod()}`</li>
-  <li>fields: `$exec{my.package.MyClass.myField}`</li>
-  <li>Spaces inside the parenthesis: `$exec{ my.package.MyClass.myField }`</li>
-  <li>Escape with `$_`: `$_exec{something}` will produce `$exec{something}` without trying to execute anything
+#### Expression syntax
+ 
+You can write `$eval{EXPR}` where `EXPR` is a Java static method without parameters, or a static field value. The evaluation result will then be converted to string with `String.valueOf()`. Each evaluation is computed exactly once at maven packaging time. If you want the evaluation to be computed each time the site is generated (to display, i.e. current date), use instead `$evalNow{EXPR}`.  
+ 
+ 
+<b>Supported syntax</b>:
+  
+<ul>
+  <li>methods: `$eval{my.package.MyClass.myMethod()}`</li>
+  <li>fields: `$eval{my.package.MyClass.myField}`</li>
+  <li>Spaces inside the parenthesis: `$eval{ my.package.MyClass.myField }`</li>
+  <li>Escape with `$_`: `$_eval{something}` will produce `$eval{something}` without trying to execute anything
   </li>  
-  </ul>
+</ul>
   
-  <b>NOT supported</b>:
-  <ul>
-  <li>method with parameters: `$exec{my.package.MyClass.myMethod("bla bla")}`</li>
-  <li>method chains: `$exec{my.package.MyClass.myMethod().anotherMethod()}`</li>
-  <li>classes: `$exec{my.package.MyClass}`</li>
-  <li>unqualified classes: `$exec{MyClass.myMethod()}`</li>
-  <li>new instances: `$exec{new my.package.MyClass()}`</li>
-  </ul>
+<b>Unsupported syntax</b>:
+  
+<ul>
+  <li>method with parameters: `$eval{my.package.MyClass.myMethod("bla bla")}`</li>
+  <li>method chains: `$eval{my.package.MyClass.myMethod().anotherMethod()}`</li>
+  <li>classes: `$eval{my.package.MyClass}`</li>
+  <li>unqualified classes: `$eval{MyClass.myMethod()}`</li>
+  <li>new instances: `$eval{new my.package.MyClass()}`</li>
+</ul>
 
 ### Sending site to Github
 

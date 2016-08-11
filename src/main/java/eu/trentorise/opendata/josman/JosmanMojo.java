@@ -140,7 +140,7 @@ public abstract class JosmanMojo extends AbstractMojo {
         return new JosmanProject(
                 getProject(),
                 "",
-                "target" + File.separator + "site",
+                "target/site",
                 parsedIgnoredVersions,
                 isSnapshot
         );

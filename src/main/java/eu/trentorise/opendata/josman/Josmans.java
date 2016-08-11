@@ -2,6 +2,8 @@ package eu.trentorise.opendata.josman;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import eu.trentorise.opendata.commons.TodUtils;
+import eu.trentorise.opendata.commons.validation.Preconditions;
+import eu.trentorise.opendata.josman.exceptions.ExprNotFoundException;
 import eu.trentorise.opendata.josman.exceptions.JosmanException;
 import eu.trentorise.opendata.josman.exceptions.JosmanIoException;
 import eu.trentorise.opendata.josman.exceptions.JosmanNotFoundException;
@@ -15,19 +17,22 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Reader;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.jar.JarEntry;
@@ -38,6 +43,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
+
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.egit.github.core.Repository;
@@ -47,8 +56,6 @@ import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.parboiled.common.ImmutableList;
-
-import com.google.common.io.Files;
 
 /**
  * Utilities for Josman
@@ -61,7 +68,30 @@ public final class Josmans {
 
     public static final int CONNECTION_TIMEOUT = 1000;
 
+    /**
+     * @since 0.8.0
+     */
     public static final String[] REQUIRED_DOCS = new String[] { "LICENSE.txt", "README.md", "docs/README.md" };
+
+    /**
+     * @since 0.8.0
+     */
+    private final static String EXPR_PATTERN = "[\\w|\\.]*(\\((.*)\\))?";
+
+    /**
+     * @since 0.8.0
+     */
+    private final static String EVAL_PATTERN = "\\$eval(Now)?\\{\\s*(" + EXPR_PATTERN + ")\\s*\\}";
+
+    /**
+     * @since 0.8.0
+     */
+    public static final Object[] EVAL_CSV_FILE_HEADER = { "expr", "eval" };
+
+    /**
+     * @since 0.8.0
+     */
+    public static final CSVFormat EVAL_CSV_FORMAT = CSVFormat.DEFAULT.withRecordSeparator("\n");
 
     private Josmans() {
     }
@@ -92,19 +122,17 @@ public final class Josmans {
     }
 
     /**
-     * Reading file with Jgit:
-     * https://github.com/centic9/jgit-cookbook/blob/master/src/main/java/org/
-     * dstadler/jgit/api/ReadFileFromCommit.java
-     */
-    /**
      * Fetches all tags from a github repository. Beware of API limits of 60
      * requests per hour
      * 
      * @throws JosmanIoException
      */
+    // Reading file with Jgit:
+    // https://github.com/centic9/jgit-cookbook/blob/master/src/main/java/org/
+    // dstadler/jgit/api/ReadFileFromCommit.java
     public static ImmutableList<RepositoryTag> fetchTags(String organization, String repoName) {
-        TodUtils.checkNotEmpty(organization, "Invalid organization!");
-        TodUtils.checkNotEmpty(repoName, "Invalid repo name!");
+        Preconditions.checkNotEmpty(organization, "Invalid organization!");
+        Preconditions.checkNotEmpty(repoName, "Invalid repo name!");
 
         LOG.log(Level.FINE, "Fetching {0}/{1} tags.", new Object[] { organization, repoName });
 
@@ -838,64 +866,184 @@ public final class Josmans {
     }
 
     /**
-     * 
-     * Processes input string by replacing commands with their execution, and 
-     * then returns the resulting expanded string. 
-     * 
-     * <b>Supported strings</b>:
-     * 
-     * <ul>
-     * <li>methods: $exec{my.package.MyClass.myMethod()}</li>
-     * <li>fields: $exec{my.package.MyClass.myField}</li>
-     * <li>Spaces inside the parenthesis: $exec{ my.package.MyClass.myField }
-     * <li>Escape with '$_': $_exec{something} will produce $exec{something} without trying to execute anything</li>
-     * </ul>
-     * 
-     * <b>Unsupported</b>:
-     * <ul>
-     * <li>method with parameters: $exec{my.package.MyClass.myMethod("bla bla")}
-     * </li>
-     * <li>method chains: $exec{my.package.MyClass.myMethod().anotherMethod()}
-     * </li>
-     * <li>classes: $exec{my.package.MyClass}</li>
-     * <li>unqualified classes: $exec{MyClass.myMethod()}</li>
-     * <li>new instances: $exec{new my.package.MyClass()}</li>
-     * </ul>
-     * 
+     * Evals all expressions (both eval and evalNow) present in text, and
+     * returns a map
+     * expr -> result.
      * 
      * @since 0.8.0
      */
-    public static String execCmds(String input, ClassLoader classLoader) {
-        checkNotNull(input);
+    public static Map<String, String> evalExprsInText(String text, ClassLoader classLoader) {
+        checkNotNull(text);
         checkNotNull(classLoader);
-        
-        int i = 0;
 
-        Pattern pattern = Pattern.compile("\\$exec\\{\\s*([\\w|\\.]*(\\((.*)\\))?)\\s*\\}");
-        Matcher matcher = pattern.matcher(input);
+        Map<String, String> ret = new HashMap<>();
+
+        Pattern pattern = Pattern.compile(EVAL_PATTERN);
+        Matcher matcher = pattern.matcher(text);
+
+        boolean evalError = false;
+
+        while (matcher.find()) {
+
+            String expr = matcher.group(2);
+
+            try {
+                String stringRes = evalNow(expr, classLoader);
+                ret.put(expr, stringRes);
+            } catch (Exception ex) {
+                LOG.log(Level.SEVERE, "Error while evaluating expression: " + expr , ex);
+                evalError = true;
+            }
+
+        }
+
+        if (evalError) {
+            throw new JosmanException("Error occurred while evaluating expression(s)! See log for details.");
+        }
+
+        return ret;
+    }
+
+    /**
+     * 
+     * Processes input string by replacing commands with their execution, and
+     * then returns the resulting expanded string.
+     * 
+     * <h3>Supported strings:</h3>
+     * 
+     * <ul>
+     * <li>methods: $eval{my.package.MyClass.myMethod()}</li>
+     * <li>fields: $eval{my.package.MyClass.myField}</li>
+     * <li>Spaces inside the parenthesis: $eval{ my.package.MyClass.myField }
+     * <li>Escape with '$_': $_eval{something} will produce $eval{something}
+     * without trying to execute anything</li>
+     * </ul>
+     * 
+     * <h3>Unsupported:</h3>
+     * <ul>
+     * <li>method with parameters: $eval{my.package.MyClass.myMethod("bla bla")}
+     * </li>
+     * <li>method chains: $eval{my.package.MyClass.myMethod().anotherMethod()}
+     * </li>
+     * <li>classes: $eval{my.package.MyClass}</li>
+     * <li>unqualified classes: $eval{MyClass.myMethod()}</li>
+     * <li>new instances: $eval{new my.package.MyClass()}</li>
+     * </ul>
+     * 
+     * @throws ExprNotFoundException if an expression is not found in {@code evalMap}
+     * 
+     * @since 0.8.0
+     */
+    public static String expandExprs(
+            String text,
+            Map<String, String> evalMap,
+            ClassLoader classLoader) {
+        checkNotNull(text);
+        checkNotNull(classLoader);
+        checkNotNull(evalMap);
+
+        Pattern pattern = Pattern.compile(EVAL_PATTERN);
+        Matcher matcher = pattern.matcher(text);
         List<Integer> execStarts = new ArrayList<>();
         List<Integer> execEnds = new ArrayList<>();
         List<String> results = new ArrayList<>();
 
-        boolean foundInvalid = false;
+        List<String> erroneusExprs = new ArrayList<>();
+        List<String> missingExprs = new ArrayList<>();
 
         while (matcher.find()) {
 
             execStarts.add(matcher.start(0));
             execEnds.add(matcher.end(0));
 
-            String cmd = matcher.group(1);
+            boolean evalNow = matcher.group(1) != null;
+            String expr = matcher.group(2);
 
-            if (matcher.group(3) != null && TodUtils.isNotEmpty(matcher.group(3)
-                                                                       .trim())) {
-                foundInvalid = true;
-                LOG.severe("Commands with parameters are currently not supported: " + matcher.group(2));
+            try {
+                String stringRes = evalExpr(expr, evalMap, evalNow, classLoader);
+                results.add(stringRes);
+            } catch (ExprNotFoundException ex) {
+                LOG.log(Level.SEVERE, "Following expression wasn't found among precalculated ones: " + expr, ex);
+                missingExprs.add(expr);
+            } catch (Exception ex) {
+                LOG.log(Level.SEVERE, "Error while evaluating expression: " + expr, ex);
+                erroneusExprs.add(expr);
             }
 
-            String[] names = cmd.split("\\.");
+        }
 
+        if (!missingExprs.isEmpty()) {
+            throw new ExprNotFoundException("Found missing expression(s)! See log for details.", missingExprs.get(0));
+        }
+
+        if (!erroneusExprs.isEmpty()) {
+            throw new JosmanException("Error while calculating expression(s)! See log for details.");
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        int lastIndex = 0;
+        for (int k = 0; k < execStarts.size(); k++) {
+            int start = execStarts.get(k);
+            int end = execEnds.get(k);
+            String res = results.get(k);
+
+            sb.append(text.substring(lastIndex, start));
+            sb.append(res);
+            lastIndex = end;
+        }
+        if (lastIndex < text.length()) {
+            sb.append(text.substring(lastIndex, text.length()));
+        }
+
+        return sb.toString()
+                 .replace("$_eval{", "$eval{")
+                 .replace("$_evalNow{", "$evalNow{");
+    }
+
+    /**
+     * @since 0.8.0
+     */
+    public static String evalNow(
+            String expr,
+            ClassLoader classLoader) {
+        return evalExpr(expr, Collections.EMPTY_MAP, true, classLoader);
+    }
+
+    /**
+     * @throws ExprNotFoundException
+     * 
+     * @since 0.8.0
+     */
+    public static String evalExpr(
+            String expr,
+            Map<String, String> evals,
+            boolean evalNow,
+            ClassLoader classLoader) {
+
+        checkNotNull(expr);
+        checkNotNull(evals);
+        checkNotNull(classLoader);
+
+        String[] names = expr.split("\\.");
+
+        Pattern pattern = Pattern.compile(EXPR_PATTERN);
+        Matcher matcher = pattern.matcher(expr);
+
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException(
+                    "Provided command " + expr + "doesn't match pattern " + EXPR_PATTERN + "  !!");
+        }
+
+        if (matcher.group(2) != null && TodUtils.isNotEmpty(matcher.group(2)
+                                                                   .trim())) {
+            throw new IllegalArgumentException(
+                    "Commands with parameters are currently not supported: " + matcher.group(1));
+        }
+
+        if (evalNow) {
             String methodOrFieldName;
-            if (matcher.group(3) == null) { // field
+            if (matcher.group(1) == null) { // field
                 methodOrFieldName = names[names.length - 1];
             } else { // method
                 methodOrFieldName = names[names.length - 1].substring(0, names[names.length - 1].indexOf('('));
@@ -909,7 +1057,7 @@ public final class Josmans {
             try {
                 clazz = Class.forName(className, true, classLoader);
             } catch (Exception ex) {
-                throw new JosmanException("Error while loading class for calling method " + cmd, ex);
+                throw new JosmanException("Error while loading class for calling method " + expr, ex);
             }
             String stringRes;
             try {
@@ -917,46 +1065,132 @@ public final class Josmans {
                 java.lang.reflect.Method method;
                 try {
                     method = clazz.getMethod(methodOrFieldName);
-                    if (!Modifier.isStatic(method.getModifiers())){
+                    if (!Modifier.isStatic(method.getModifiers())) {
                         throw new JosmanException("Non-static methods are not supported!");
                     }
-                    stringRes = String.valueOf(method.invoke(null));
+                    return String.valueOf(method.invoke(null));
                 } catch (NoSuchMethodException e) {
                     Field field = clazz.getField(methodOrFieldName);
-                    stringRes = String.valueOf(field.get(null));
+                    return String.valueOf(field.get(null));
                 }
 
             } catch (Exception ex) {
-                throw new JosmanException("Error processing " + cmd, ex);
+                throw new JosmanException("Error processing " + expr, ex);
             }
 
-            results.add(stringRes);
-            
-
+        } else { // take from map
+            if (!evals.containsKey(expr)) {
+                throw new ExprNotFoundException(
+                        "Coulnd't find expression " + expr + " in eval map: " + evals.toString(), expr);
+            }
+            String ret = evals.get(expr);
+            if (ret == null) {
+                throw new ExprNotFoundException(
+                        "Found null evaluation result for command " + expr + "inside evals map " + evals.toString(),
+                        expr);
+            }
+            return ret;
         }
 
-        if (foundInvalid) {
-            throw new JosmanException("Found invalid command(s)! See log for errors.");
+    }
+
+    /**
+     * Writes eval map to a CSV file, creating parent directories if needed.
+     *
+     * @throws JosmanIoException
+     * 
+     * @since 0.8.0
+     */
+    public static void saveEvalMap(Map<String, String> evals, File file) {
+        checkNotNull(file);
+        checkNotNull(evals);
+
+        LOG.info("Writing file " + file.getAbsolutePath() + "   ...");
+
+        FileWriter fileWriter = null;
+
+        if (!file.exists()) {
+            if (!file.getParentFile()
+                     .exists()) {
+
+                boolean ret = file.getParentFile()
+                                  .mkdirs();
+                if (!ret) {
+                    throw new JosmanIoException("Couldn't create directory " + file.getParentFile()
+                                                                                   .getAbsolutePath());
+                }
+
+            }
         }
 
-        StringBuilder sb = new StringBuilder();
+        CSVPrinter csvFilePrinter = null;
 
-        int lastIndex = 0;
-        for (int k = 0; k < execStarts.size(); k++) {
-            int start = execStarts.get(k);
-            int end = execEnds.get(k);
-            String res = results.get(k);
+        try {
 
-            sb.append(input.substring(lastIndex, start));
-            sb.append(res);
-            lastIndex = end;
+            fileWriter = new FileWriter(file);
+            csvFilePrinter = new CSVPrinter(fileWriter, EVAL_CSV_FORMAT);
+            csvFilePrinter.printRecord(EVAL_CSV_FILE_HEADER);
+
+            for (String expr : evals.keySet()) {
+                List<String> evalRecord = new ArrayList<>();
+                checkNotEmpty(expr, "Invalid eval expression!");
+                evalRecord.add(expr);
+                String val = evals.get(expr);
+                checkNotNull(val);
+                evalRecord.add(val);
+                csvFilePrinter.printRecord(evalRecord);
+            }
+
+            LOG.info("CSV file created successfully: " + file.getAbsolutePath());
+
+        } catch (IOException ex) {
+            throw new JosmanIoException("Error while writing CSV file " + file.getAbsolutePath(), ex);
+        } finally {
+            try {
+                fileWriter.flush();
+                fileWriter.close();
+                csvFilePrinter.close();
+            } catch (IOException e) {
+                LOG.log(Level.SEVERE,
+                        "Error while flushing/closing fileWriter/csvPrinter for file " + file.getAbsolutePath(), e);
+                e.printStackTrace();
+            }
         }
-        if (lastIndex < input.length()) {
-            sb.append(input.substring(lastIndex, input.length()));
+    }
+
+    /**
+     *
+     * @throws JosmanNotFoundException
+     * @throws JosmanIoException
+     * 
+     * @since 0.8.0
+     */
+    public static Map<String, String> loadEvalMap(File file) {
+
+        LOG.info("Reading file " + file.getAbsolutePath() + " ...");
+
+        HashMap<String, String> ret = new HashMap<>();
+
+        Reader in;
+        try {
+            in = new FileReader(file);
+            Iterable<CSVRecord> records = Josmans.EVAL_CSV_FORMAT.parse(in);
+            boolean header = true;
+            for (CSVRecord record : records) {
+                if (header) {
+                    header = false;
+                } else {
+                    String expr = record.get(0);
+                    String eval = record.get(1);
+                    ret.put(expr, eval);
+                }
+            }
+            return ret;
+        } catch (FileNotFoundException ex) {
+            throw new JosmanNotFoundException("Couldn't find $eval map at " + file.getAbsolutePath() + " ", ex);
+        } catch (IOException e) {
+            throw new JosmanIoException("Something went wrong!", e);
         }
-        
-        
-        return sb.toString().replace("$_exec{", "$exec{");
     }
 
 }
