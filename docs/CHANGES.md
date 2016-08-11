@@ -6,7 +6,6 @@ http://opendatatrentino.github.io/josman-maven-plugin
 
 
 
-
 ## Release Notes
 
 ### 0.8.0 
