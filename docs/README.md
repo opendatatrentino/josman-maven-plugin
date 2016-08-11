@@ -74,49 +74,70 @@ Josman has some limited support for executing Java commands with `$eval{EXPR}`: 
  
 The workflow to compute the evaluations is the following:
  
-1. Expressions are evaluated by default at `prepare package` phase 
-2. Evaluated expressions are stored as javadocs resource in CSV file `target/apidocs/resources/josman-eval.csv`
-3. Once the CSV file is present, it is possible to generate the site
+1. Tell Maven to compute expressions by inserting this into your `pom.xml` ( by default expressions are evaluated at `prepare-package` phase):
 
-Having evaluated expressions in the javadoc jar makes possible to regenerate the site without the need to recalculate expressions for older versions of the software.
-  
-Expressions are executed by default at `prepare package` with eval mojo, which can also be called manually by issuing 
+```xml
 
-```
-mvn josman:eval
+<plugin>
+	<groupId>eu.trentorise.opendata</groupId>
+	<artifactId>josman-maven-plugin</artifactId>
+	<version>#{version}</version>
+	<executions>
+		<execution>
+			<goals>
+				<goal>eval</goal>
+			</goals>											
+		</execution>
+	</executions>
+</plugin>
+
 ``` 
+2. Evaluated expressions are stored as javadocs resource in CSV file `target/apidocs/resources/josman-eval.csv`
+3. Once the CSV file is present, it is then possible to generate the site by issuing `mvn josman:site`
 
 Evaluation is done using the classpath environment for tests, and evaluations results are put in file `target/apidocs/resources/josman-eval.csv` so they can be permanently packaged in the javadoc jar. 
 
-Once evaluation file is created, it is then possible to generate the site by issuing
 
-```
-mvn josman:site
-``` 
+### Storing expressions in javadoc
 
-#### Manual evaluation
+Having evaluated expressions in the published javadoc jar makes possible to regenerate the site without the need to recalculate expressions for older versions of the software. To produce the javadoc jar you will need this in your `pom.xml` (the `jar` goal runs at `package` time): 
 
-If you want to create the file `target/apidocs/resources/josman-eval.csv` with some custom process (i.e. because you have [issues with capturing logging](https://github.com/opendatatrentino/josman-maven-plugin/issues/17)), you can tell josman to skip evaluation with `skipEval` flag, i.e. in the `pom.xml` you can write like this:
+```xml
+
+<plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-javadoc-plugin</artifactId>
+	<version>2.10.1</version>
+ 	<executions>
+		<execution>					
+			<goals>
+				<goal>jar</goal>
+			</goals>
+		</execution>
+	</executions>  
+</plugin>
+
+```  
+ 
+#### Custom evaluation
+
+If you want to create the file `target/apidocs/resources/josman-eval.csv` with some custom process (i.e. because you have [issues with capturing logging](https://github.com/opendatatrentino/josman-maven-plugin/issues/17)) just don't put the `eval` goal in the plugin configuration:
 
 ```xml
 
 	<plugin>
 		<groupId>eu.trentorise.opendata</groupId>
 		<artifactId>josman-maven-plugin</artifactId>
-		<version>0.8.0-SNAPSHOT</version>
-		
-		<configuration>
-			<skipEval>true</skipEval>
-		</configuration>		
+		<version>#{version}</version>		
 	</plugin>
 
 
 ```
-
+You can create the file before `packaging` phase, like during `testing` or in `prepare-package` phase.  
   
 #### Expression syntax
  
-You can write `$eval{EXPR}` where `EXPR` is a Java static method without parameters, or a static field value. The evaluation result will then be converted to string with `String.valueOf()`. Each evaluation is computed exactly once at maven packaging time. If you want the evaluation to be computed each time the site is generated (to display, i.e. current date), use instead `$evalNow{EXPR}`.  
+You can write `$eval{EXPR}` where `EXPR` is a Java static method without parameters, or a static field value. The evaluation result will then be converted to string with `String.valueOf()`. Each evaluation is computed exactly once at maven `prepare-package` phase. If you want an evaluation to be computed each time the site is generated (to display, i.e. current date), use instead `$evalNow{EXPR}`.  
  
  
 <b>Supported syntax</b>:
@@ -126,6 +147,7 @@ You can write `$eval{EXPR}` where `EXPR` is a Java static method without paramet
   <li>fields: `$eval{my.package.MyClass.myField}`</li>
   <li>Spaces inside the parenthesis: `$eval{ my.package.MyClass.myField }`</li>
   <li>Escape with `$_`: `$_eval{something}` will produce `$eval{something}` without trying to execute anything
+  <li>Always re-evaluate : `$evalNow{EXPR}`</li>  
   </li>  
 </ul>
   

@@ -891,7 +891,7 @@ public final class Josmans {
                 String stringRes = evalNow(expr, classLoader);
                 ret.put(expr, stringRes);
             } catch (Exception ex) {
-                LOG.log(Level.SEVERE, "Error while evaluating expression: " + expr , ex);
+                LOG.log(Level.SEVERE, "Error while evaluating expression: " + expr, ex);
                 evalError = true;
             }
 
@@ -906,8 +906,8 @@ public final class Josmans {
 
     /**
      * 
-     * Processes input string by replacing commands with their execution, and
-     * then returns the resulting expanded string.
+     * Processes input {@code text} by replacing expressions like $eval{EXPR} and
+     * $evalNow{EXPR} with their execution, and then returns the resulting expanded string.
      * 
      * <h3>Supported strings:</h3>
      * 
@@ -915,8 +915,9 @@ public final class Josmans {
      * <li>methods: $eval{my.package.MyClass.myMethod()}</li>
      * <li>fields: $eval{my.package.MyClass.myField}</li>
      * <li>Spaces inside the parenthesis: $eval{ my.package.MyClass.myField }
-     * <li>Escape with '$_': $_eval{something} will produce $eval{something}
+     * <li>Escape with '$_': $_eval{something} will produce $eval{something}     * 
      * without trying to execute anything</li>
+     * <li>Always re-evaluate : `$evalNow{EXPR}`</li>     * 
      * </ul>
      * 
      * <h3>Unsupported:</h3>
@@ -930,7 +931,14 @@ public final class Josmans {
      * <li>new instances: $eval{new my.package.MyClass()}</li>
      * </ul>
      * 
-     * @throws ExprNotFoundException if an expression is not found in {@code evalMap}
+     * @throws ExprNotFoundException
+     *             if an expression is not found in {@code evalMap}
+     * 
+     * @param evalMap
+     *            expressions in $eval{} statements must be contained in this
+     *            map. $evalNow{} expressions instead will be recomputed at each
+     *            call.
+     * @param text The text to parse
      * 
      * @since 0.8.0
      */
@@ -1011,6 +1019,8 @@ public final class Josmans {
     }
 
     /**
+     * See {@link #expandExprs(String, Map, ClassLoader)}
+     * 
      * @throws ExprNotFoundException
      * 
      * @since 0.8.0
