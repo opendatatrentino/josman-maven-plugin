@@ -7,21 +7,21 @@ RELEASE DOCS ARE ON THE <a href="http://opendatatrentino.github.io/josman-maven-
 #### About
 
 
-Maven plugin for managing Java open source programs.
+Maven plugin for managing documentation of Java open source programs.
 
 
-|**Usage**|**License**|**Roadmap**|**Contributing**|
+|Usage|License|Roadmap|Contributing|
 |-----------|---------|-----------|----------------|
 | See [docs](docs) |Business-friendly [Apache License v2.0](LICENSE.txt) | See [project milestones](../../milestones) | See [the wiki](../../wiki)|
 
 
 **Features:**
   
-  * integrated with Github
-  * supports <a href="http://semver.org" target="_blank">semantic versioning</a>
-  * supports limited variable replacement
-  * allows limited evalution of static Java methods and field names  
-  * supports Maven 3
+  * well integrated with Github
+  * modeled after  <a href="http://semver.org" target="_blank">semantic versioning</a> principles
+  * allows maintainance of present and past versions of the sofware  
+  * has some support for expression execution  
+  * designed for Maven 3
   * supports Java 7+
 
 #### Workflow
@@ -31,10 +31,10 @@ Josman is modeled after this workflow, where you:
 1. create an open source project on Github
 2. keep docs in source code, in folder `docs/` (i.e. see [josman docs](docs))
 3. edit your markdown files and set relative links between them so they display nice in Github
-4. create a branch named `branch-x.y` (i.e `branch-1.2`)
-5. release your library using <a href="http://semver.org" target="_blank">semantic versioning</a> and tag it with tagname `projectName-x.y.z` (i.e. `josman-1.2.3`)
-6. run Josman to create a corresponding github website (i.e. http://opendatatrentino.github.io/josman) out of the docs. 
-7. spam the world with links to your new shiny project website
+4. release your library using <a href="http://semver.org" target="_blank">semantic versioning</a> and tag it with tagname `projectName-x.y.z` (i.e. `my-project-1.2.3`)
+5. run Josman to create a corresponding github website (i.e. http://opendatatrentino.github.io/josman) out of the docs. 
+6. spam the world with links to your new shiny project website
+7. If you need to improve past versions, create a branch named `branch-x.y` (i.e `branch-1.2`)
 
 Project wiki (i.e. [josman wiki](../../wiki)) is used for information about contributing to the project.
 

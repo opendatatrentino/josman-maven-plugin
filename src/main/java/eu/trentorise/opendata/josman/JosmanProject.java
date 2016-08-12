@@ -17,44 +17,26 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
 import jodd.jerry.Jerry;
 import jodd.jerry.JerryFunction;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.DirectoryWalker;
 import org.apache.commons.io.FileUtils;
-import org.apache.maven.RepositoryUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
-import org.apache.maven.model.Dependency;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.project.DefaultDependencyResolutionRequest;
-import org.apache.maven.project.DependencyResolutionException;
-import org.apache.maven.project.DependencyResolutionResult;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.project.ProjectDependenciesResolver;
 import org.eclipse.egit.github.core.RepositoryTag;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
 import java.io.StringWriter;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -75,7 +57,6 @@ import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.parboiled.common.ImmutableList;
 import org.pegdown.Parser;
 import org.pegdown.PegDownProcessor;
-import org.sonatype.aether.RepositorySystemSession;
 
 /**
  * Represents a Josman project, holding information about maven and git
@@ -434,9 +415,9 @@ public class JosmanProject {
                                                       .replaceAll("#\\{repoRelease}",
                                                               Josmans.repoRelease(Josmans.organization(mvnPrj.getUrl()),
                                                                       mvnPrj.getArtifactId(), version))
-                                                      .replaceAll("#_\\{version}", "#{version}")
-                                                      .replaceAll("#_\\{majorMinorVersion}", "#{majorMinorVersion}")
-                                                      .replaceAll("#_\\{repoRelease}", "#{repoRelease}")                                                       
+                                                      .replaceAll("#'\\{version}", "#{version}")
+                                                      .replaceAll("#'\\{majorMinorVersion}", "#{majorMinorVersion}")
+                                                      .replaceAll("#'\\{repoRelease}", "#{repoRelease}")                                                       
                                                       
                                                       .replaceAll("jedoc", "josman")
                                                       
@@ -446,16 +427,17 @@ public class JosmanProject {
                                                        .replaceAll("\\$\\{josman.repoRelease}",
                                                                 Josmans.repoRelease(Josmans.organization(mvnPrj.getUrl()),
                                                                         mvnPrj.getArtifactId(), version))
-                                                       .replaceAll("\\$_\\{project.version}", "\\${project.version}")
-                                                       .replaceAll("\\$_\\{josman.majorMinorVersion}", "\\${josman.majorMinorVersion}")
-                                                       .replaceAll("\\$_\\{josman.repoRelease}", "\\${josman.repoRelease}");                                                       
+                                                       .replaceAll("\\$'\\{project.version}", "\\${project.version}")
+                                                       .replaceAll("\\$'\\{josman.majorMinorVersion}", "\\${josman.majorMinorVersion}")
+                                                       .replaceAll("\\$'\\{josman.repoRelease}", "\\${josman.repoRelease}");                                                       
                                                        
         
-
         filteredSourceMdString = Josmans.expandExprs(filteredSourceMdString,
-                evals,
-                Thread.currentThread()
-                      .getContextClassLoader());
+                    evals,
+                    relPath,
+                    Thread.currentThread()
+                          .getContextClassLoader());
+
 
         String skeletonString;
         try {
@@ -922,9 +904,8 @@ public class JosmanProject {
                 buildIndex(snapshotVersion, curEvals);
                 processDocsDir(snapshotVersion, curEvals);
             } catch (ExprNotFoundException ex) {
-                throw new ExprNotFoundException("Snapshot version is missing evaluated expression: "
-                        + ex.getExpr() + "!\n"
-                                + "  Maybe you forgot to run   mvn josman:eval   ?", ex.getExpr(), ex);
+                throw new ExprNotFoundException("SNAPSHOT VERSION IS MISSING EVALUATED EXPRESSION: "
+                        + ex.getExpr() + " FOUND IN FILE " + ex.getRelPath()+ " !   MAYBE YOU FORGOT TO RUN   mvn josman:eval   ?", ex.getExpr(), ex.getRelPath(), ex);
             }
             
             createLatestDocsDirectory(snapshotVersion);
@@ -963,8 +944,10 @@ public class JosmanProject {
                     processGitDocsDir(version, evals);
                 } catch (ExprNotFoundException ex) {
                     throw new ExprNotFoundException(
-                            "Released version " + version + " is missing evalued expression: " + ex.getExpr(),
+                            "RELEASED VERSION " + version + " IS MISSING EVALUATION OF EXPRESSION: " + ex.getExpr()
+                            + " FOUND IN FILE: " + ex.getRelPath(),
                             ex.getExpr(),
+                            ex.getRelPath(),
                             ex);
                 }
             }
@@ -982,9 +965,11 @@ public class JosmanProject {
 
                 buildIndex(latestPublishedVersion, latestPublishedEvals);
             } catch (ExprNotFoundException ex) {
-                throw new ExprNotFoundException("Released version " + latestPublishedVersion
-                        + " is missing evalued expression: " + ex.getExpr(),
+                throw new ExprNotFoundException("RELEASED VERSION " + latestPublishedVersion
+                        + " IS MISSING EVALUATION OF EXPRESSION: " + ex.getExpr()
+                        + " FOUND IN FILE " + ex.getRelPath(),
                         ex.getExpr(),
+                        ex.getRelPath(),
                         ex);
             }
 
@@ -1170,9 +1155,9 @@ public class JosmanProject {
      * @since 0.8.0
      */
     public void evalDocs() {
-        // collect cmds
 
-        final Map<String, String> evals = new HashMap();
+
+        final Map<String, String> evals = new HashMap<>();
 
         new DirectoryWalker() {
             /**
@@ -1198,14 +1183,15 @@ public class JosmanProject {
                 if (file.getAbsolutePath()
                         .endsWith(".md")) {
                     String text = FileUtils.readFileToString(file, "UTF-8");
-                    evals.putAll(Josmans.evalExprsInText(text, Thread.currentThread()
-                                                                     .getContextClassLoader()));
+                    evals.putAll(Josmans.evalExprsInText(text, 
+                                                            file.getAbsolutePath(),
+                                                            Thread.currentThread()
+                                                             .getContextClassLoader()));
                 }
             }
 
         }.process();
 
-        // store file
         Josmans.saveEvalMap(evals, new File(sourceRepoDir, TARGET_EVAL_FILEPATH));
 
     }

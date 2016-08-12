@@ -13,7 +13,9 @@ http://opendatatrentino.github.io/josman-maven-plugin
 todo date
 
 - merged Josman project into this one.
-- implemented $eval{EXPR} command
+- implemented `$'eval{EXPR}` and `$'evalNow{EXPR}` command
+- added variables  ` $'{project.version}, $'{josman.majorMinorVersion}, $'{josman.repoRelease} `
+- deprecated `#` variables 
 
 
 ### 0.7.0

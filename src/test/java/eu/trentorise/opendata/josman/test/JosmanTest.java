@@ -113,6 +113,7 @@ public class JosmanTest {
     /** 
      * @since 0.8.0
      */
+    // TODO split test into JosmansTest using expandExprs    
     @Test
     public void testEval() throws IOException {
         
@@ -129,6 +130,7 @@ public class JosmanTest {
         
         try(  PrintWriter out = new PrintWriter( f)  ){
             out.println( "$eval{java.lang.System.in} AND $evalNow{java.lang.System.out} AND $evalNow{java.lang.System.getProperties()}" );
+            out.println( "$'eval{E} AND $'evalNow{E}" );            
             out.close();
         }
         
@@ -158,12 +160,15 @@ public class JosmanTest {
         assertTrue(output.contains("java.runtime.name"));        
         assertTrue(output.contains(System.out.toString()));
         
+        assertTrue(output.contains("$eval{E}"));
+        assertTrue(output.contains("$evalNow{E}"));
         
     }
 
     /** 
      * @since 0.8.0
      */
+    // TODO this stuff would be better tested in JosmansTest with expandExprs
     @Test
     public void testVariables() throws IOException {
         
@@ -179,9 +184,9 @@ public class JosmanTest {
         
         try(  PrintWriter out = new PrintWriter( f)  ){                       
             out.println("a${project.version} b${josman.majorMinorVersion} c${josman.repoRelease}");            
-            out.println("d$_{project.version} e$_{josman.majorMinorVersion} f$_{josman.repoRelease}   " );
+            out.println("d$'{project.version} e$'{josman.majorMinorVersion} f$'{josman.repoRelease}   " );
             out.println("g#{version} h#{majorMinorVersion} i#{repoRelease} " );
-            out.println("l#_{version} m#_{majorMinorVersion} n#_{repoRelease} " );            
+            out.println("l#'{version} m#'{majorMinorVersion} n#'{repoRelease} " );            
             out.close();
         }
                

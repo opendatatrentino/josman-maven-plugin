@@ -25,3 +25,13 @@ Links with extension:
 
 Great discovery: links without extension don't work...
 
+### Expressions
+
+**$'evalNow{eu.trentorise.opendata.josman.test.JosmansTest.calcDate()}**  
+$evalNow{eu.trentorise.opendata.josman.test.JosmansTest.calcDate()}
+
+
+**$'eval{eu.trentorise.opendata.josman.test.JosmansTest.sayHello()}**
+$eval{eu.trentorise.opendata.josman.test.JosmansTest.sayHello()}
+
+

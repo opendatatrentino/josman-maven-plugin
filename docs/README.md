@@ -15,7 +15,7 @@ Put this in the `plugins` section of your `pom.xml`:
         <plugin>
             <groupId>eu.trentorise.opendata</groupId>
             <artifactId>josman-maven-plugin</artifactId>
-            <version>#{version}</version>
+            <version>${project.version}</version>
             <executions>
                 <execution>
                     <goals>
@@ -74,30 +74,38 @@ To ignore some version, you can use `ignoredVersions`:
 
 ### Markdown
 
-Some examples can be found in [tests](tests.md) page. Keep in mind not all Github features are supported by <a href="https://github.com/sirthias/pegdown" target="_blank"> PegDown </a>, the library we use to convert to HTML (some further tweaks to the generated HTML are done with <a href="http://jodd.org/doc/jerry" target="_blank"> Jerry</a>)
+Some examples can be found in [tests](tests.md) page. Keep in mind not all Github features are supported by <a href="https://github.com/sirthias/pegdown" target="_blank"> PegDown </a>, the library we use to convert to HTML.
 
 ### Variables
 
 You can insert variables into pages, but current support is limited to 
 
-`${project.version}`, `${josman.majorMinor}`, and `${josman.repoRelease}`
+`$'{project.version}`, `$'{josman.majorMinorVersion}`, and `$'{josman.repoRelease}`
 
-which supercede the deprecated `# {version}`, `# {majorMinor}`, and `# {repoRelease}`.  
+which supercede the deprecated `#'{version}`, `#'{majorMinorVersion}`, and `#'{repoRelease}`.  
 
+To write variables names verbatim, use `$'` adding the apex after the dollar. 
 
 ### Expressions
 
-Josman has some limited support for executing Java expressions.  Strings in the format `$eval{EXPR}` will be replaced by the evaluation of the corresponding Java expression `EXPR`.
+Josman has some limited support for executing Java expressions.  Strings in the format `$'eval{EXPR}` or `$'evalNow{EXPR}` will be replaced by the evaluation of the corresponding Java expression `EXPR`. Examples:
+
+`$'evalNow{eu.trentorise.opendata.josman.test.JosmansTest.calcDate()}` = $evalNow{eu.trentorise.opendata.josman.test.JosmansTest.calcDate()}
+
+`$'eval{eu.trentorise.opendata.josman.test.JosmansTest.sayHello()}` = $eval{eu.trentorise.opendata.josman.test.JosmansTest.sayHello()}
+
+
+#### Expression workflow
  
-The workflow to compute the evaluations is the following:
+The workflow to compute the expressions is the following:
  
-1) Tell Maven to compute expressions by inserting `eval` goal this into your `pom.xml` ( by default expressions are evaluated at `prepare-package` phase):
+1) Insert `eval` goal this into your `pom.xml` :
 
 ```xml
 <plugin>
 	<groupId>eu.trentorise.opendata</groupId>
 	<artifactId>josman-maven-plugin</artifactId>
-	<version>#{version}</version>
+	<version>${project.version}</version>
 	<executions>
 		<execution>
 			<goals>
@@ -107,21 +115,27 @@ The workflow to compute the evaluations is the following:
 	</executions>
 </plugin>
 ```
+By default expressions will run at `prepare-package` phase.
  
-2) Evaluated expressions are stored as javadocs resource in this CSV file: 
+2) Evaluate expressions:
+
+```bash
+	mvn josman:eval
+``` 
+
+Expressions will run with classpath environment for tests, and results will be put in this CSV file: 
 
 ```
-target/apidocs/resources/josman-eval.csv
+	target/apidocs/resources/josman-eval.csv
 ```
+so they can be permanently packaged in the javadoc jar.
 
-3) Once the CSV file is present, it is then possible to generate the site by issuing:
+3) Generate the site:
  
 ```bash
- mvn josman:site
+ 	mvn josman:site
 ```
-
-Evaluation is done using the classpath environment for tests, and evaluations results are put in file `target/apidocs/resources/josman-eval.csv` so they can be permanently packaged in the javadoc jar. 
-
+For `$'eval{EXPR}` forms, site generation will look for relative `EXPR` in the CSV file, while for `$'evalNow{EXPR}` forms the `EXPR` will be re-executed at each site generation.
 
 #### Storing expressions in javadoc
 
@@ -146,42 +160,41 @@ Having evaluated expressions in the published javadoc jar makes possible to rege
  
 #### Custom evaluation
 
-If you want to create the file `target/apidocs/resources/josman-eval.csv` with some custom process (i.e. because you have [issues with capturing logging](https://github.com/opendatatrentino/josman-maven-plugin/issues/17)) just don't put the `eval` goal in the plugin configuration:
+If you want to create the file `target/apidocs/resources/josman-eval.csv` with some custom process (i.e. because you have [issues capturing logs](https://github.com/opendatatrentino/josman-maven-plugin/issues/17)) just don't put the `eval` goal in the plugin configuration:
 
 ```xml
 
-	<plugin>
-		<groupId>eu.trentorise.opendata</groupId>
-		<artifactId>josman-maven-plugin</artifactId>
-		<version>#{version}</version>		
-	</plugin>
-
+<plugin>
+	<groupId>eu.trentorise.opendata</groupId>
+	<artifactId>josman-maven-plugin</artifactId>
+	<version>${project.version}</version>		
+</plugin>
 
 ```
 You can create the CSV file by yourself before `packaging` phase, for example during `test` phase or in `prepare-package`.
   
 #### Expression syntax
  
-You can write `$eval{EXPR}` where `EXPR` is a Java static method without parameters, or a static field value. The evaluation result will then be converted to string with `String.valueOf()`. Each evaluation is computed exactly once at maven `prepare-package` phase. If you want an expression to be computed each time the site is generated (i.e. to display current date), use instead `$evalNow{EXPR}`.  
+You can write `$'eval{EXPR}` where `EXPR` is a Java static method without parameters, or a static field value. The evaluation result will then be converted to string with `String.valueOf()`. Each evaluation is computed exactly once at maven `prepare-package` phase. If you want an expression to be computed each time the site is generated (i.e. to display current date), use instead `$'evalNow{EXPR}`.  
  
  
 <b>Supported syntax</b>:
   
 
-* methods: `$eval{my.package.MyClass.myMethod()}`
-* fields: `$eval{my.package.MyClass.myField}`
-* Spaces inside the parenthesis: `$eval{ my.package.MyClass.myField }`
-* Escape with `$_`: `$_eval{something}` will produce `$eval{something}` without trying to execute anything
-* Always re-evaluate : `$evalNow{EXPR}`  
+* methods: `$'eval{my.package.MyClass.myMethod()}`
+* fields: `$'eval{my.package.MyClass.myField}`
+* Spaces inside the parenthesis: `$'eval{ my.package.MyClass.myField }`
+* Escape with `$'`: `$'eval {EXPR}` will produce `$'eval{EXPR}` without trying to execute anything
+* Always re-evaluate : `$'evalNow{EXPR}`  
   
-<b>UNSUPPORTED SYNTAX</b>:
+<b>Unsupported syntex</b>:
   
 
-* method with parameters: `$eval{my.package.MyClass.myMethod("bla bla")}`
-* method chains: `$eval{my.package.MyClass.myMethod().anotherMethod()}`
-* classes: `$eval{my.package.MyClass}`
-* unqualified classes: `$eval{MyClass.myMethod()}`
-* new instances: `$eval{new my.package.MyClass()}`
+* method with parameters: `$'eval{my.package.MyClass.myMethod("bla bla")}`
+* method chains: `$'eval{my.package.MyClass.myMethod().anotherMethod()}`
+* classes: `$'eval{my.package.MyClass}`
+* unqualified classes: `$'eval{MyClass.myMethod()}`
+* new instances: `$'eval{new my.package.MyClass()}`
 
 
 ### Publishing site
@@ -190,7 +203,7 @@ A good companion to Josman is <a href="https://github.github.com/maven-plugins/s
 
 To send website:
 
-```
-mvn com.github.github:site-maven-plugin:site
+```bash
+	mvn com.github.github:site-maven-plugin:site
 ```
 

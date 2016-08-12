@@ -870,9 +870,10 @@ public final class Josmans {
      * returns a map
      * expr -> result.
      * 
+     * @param relPath the path to the file containing the expression
      * @since 0.8.0
      */
-    public static Map<String, String> evalExprsInText(String text, ClassLoader classLoader) {
+    public static Map<String, String> evalExprsInText(String text, String relPath, ClassLoader classLoader) {
         checkNotNull(text);
         checkNotNull(classLoader);
 
@@ -888,7 +889,7 @@ public final class Josmans {
             String expr = matcher.group(2);
 
             try {
-                String stringRes = evalNow(expr, classLoader);
+                String stringRes = evalNow(expr, relPath, classLoader);
                 ret.put(expr, stringRes);
             } catch (Exception ex) {
                 LOG.log(Level.SEVERE, "Error while evaluating expression: " + expr, ex);
@@ -908,29 +909,8 @@ public final class Josmans {
      * 
      * Processes input {@code text} by replacing expressions like $eval{EXPR} and
      * $evalNow{EXPR} with their execution, and then returns the resulting expanded string.
-     * 
-     * <h3>Supported strings:</h3>
-     * 
-     * <ul>
-     * <li>methods: $eval{my.package.MyClass.myMethod()}</li>
-     * <li>fields: $eval{my.package.MyClass.myField}</li>
-     * <li>Spaces inside the parenthesis: $eval{ my.package.MyClass.myField }
-     * <li>Escape with '$_': $_eval{something} will produce $eval{something}     * 
-     * without trying to execute anything</li>
-     * <li>Always re-evaluate : `$evalNow{EXPR}`</li>     * 
-     * </ul>
-     * 
-     * <h3>Unsupported:</h3>
-     * <ul>
-     * <li>method with parameters: $eval{my.package.MyClass.myMethod("bla bla")}
-     * </li>
-     * <li>method chains: $eval{my.package.MyClass.myMethod().anotherMethod()}
-     * </li>
-     * <li>classes: $eval{my.package.MyClass}</li>
-     * <li>unqualified classes: $eval{MyClass.myMethod()}</li>
-     * <li>new instances: $eval{new my.package.MyClass()}</li>
-     * </ul>
-     * 
+     * See manual for supported expressions.
+     *  
      * @throws ExprNotFoundException
      *             if an expression is not found in {@code evalMap}
      * 
@@ -940,11 +920,14 @@ public final class Josmans {
      *            call.
      * @param text The text to parse
      * 
+     * @param relPath the path of the file we are expanding 
+     * 
      * @since 0.8.0
      */
     public static String expandExprs(
             String text,
             Map<String, String> evalMap,
+            String relPath,
             ClassLoader classLoader) {
         checkNotNull(text);
         checkNotNull(classLoader);
@@ -968,20 +951,23 @@ public final class Josmans {
             String expr = matcher.group(2);
 
             try {
-                String stringRes = evalExpr(expr, evalMap, evalNow, classLoader);
+                String stringRes = evalExpr(expr, evalMap, evalNow, relPath, classLoader);
                 results.add(stringRes);
             } catch (ExprNotFoundException ex) {
                 LOG.log(Level.SEVERE, "Following expression wasn't found among precalculated ones: " + expr, ex);
+                LOG.log(Level.SEVERE, "                                                   in file: " + relPath);
                 missingExprs.add(expr);
             } catch (Exception ex) {
                 LOG.log(Level.SEVERE, "Error while evaluating expression: " + expr, ex);
+                LOG.log(Level.SEVERE, "                          in file: " + relPath);
+                
                 erroneusExprs.add(expr);
             }
 
         }
 
         if (!missingExprs.isEmpty()) {
-            throw new ExprNotFoundException("Found missing expression(s)! See log for details.", missingExprs.get(0));
+            throw new ExprNotFoundException("Found missing expression(s)! See log for details.", missingExprs.get(0), relPath);
         }
 
         if (!erroneusExprs.isEmpty()) {
@@ -1005,21 +991,27 @@ public final class Josmans {
         }
 
         return sb.toString()
-                 .replace("$_eval{", "$eval{")
-                 .replace("$_evalNow{", "$evalNow{");
+                 .replace("$\'evalNow{", "$evalNow{")
+                 .replace("$\'eval{", "$eval{");        
     }
 
     /**
+     * 
+     * @param relPath the path to the file containing the expression
+     * 
      * @since 0.8.0
      */
     public static String evalNow(
             String expr,
+            String relPath,
             ClassLoader classLoader) {
-        return evalExpr(expr, Collections.EMPTY_MAP, true, classLoader);
+        return evalExpr(expr, Collections.EMPTY_MAP, true, relPath, classLoader);
     }
 
     /**
      * See {@link #expandExprs(String, Map, ClassLoader)}
+     * 
+     * @param relPath the path to the file containing the expression
      * 
      * @throws ExprNotFoundException
      * 
@@ -1029,6 +1021,7 @@ public final class Josmans {
             String expr,
             Map<String, String> evals,
             boolean evalNow,
+            String relPath,
             ClassLoader classLoader) {
 
         checkNotNull(expr);
@@ -1091,13 +1084,13 @@ public final class Josmans {
         } else { // take from map
             if (!evals.containsKey(expr)) {
                 throw new ExprNotFoundException(
-                        "Coulnd't find expression " + expr + " in eval map: " + evals.toString(), expr);
+                        "Coulnd't find expression " + expr + " in eval map: " + evals.toString(), expr, relPath);
             }
             String ret = evals.get(expr);
             if (ret == null) {
                 throw new ExprNotFoundException(
                         "Found null evaluation result for command " + expr + "inside evals map " + evals.toString(),
-                        expr);
+                        expr, relPath);
             }
             return ret;
         }

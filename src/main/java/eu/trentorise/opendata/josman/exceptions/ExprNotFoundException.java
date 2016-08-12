@@ -32,6 +32,8 @@ public class ExprNotFoundException extends JosmanException {
 
     private String expr;
 
+    private String relPath;
+
     /**
      * @since 0.8.0
      */    
@@ -47,15 +49,37 @@ public class ExprNotFoundException extends JosmanException {
     }
     
     /**
+     * @since 0.8.0
+     */
+    public String getRelPath(){
+        return relPath;
+    }
+    
+    /**
      * Creates the exception using the provided throwable
+     * 
+     * @param relPath the path to the file where the proble originates
      * 
      * @since 0.8.0
      */
-    public ExprNotFoundException(String msg, String expr, Throwable tr) {
+    public ExprNotFoundException(String msg, String expr, String relPath, Throwable tr) {
         super(msg, tr);
         setExpr(expr);
-        
+        setRelPath(relPath);
     }
+    
+    /**
+     * @since 0.8.0
+     */    
+    private void setRelPath(String relPath){
+        if (relPath == null){
+            LOG.severe("Found null path, setting it to blank!");
+            this.relPath = "";
+        } else {
+            this.relPath = relPath;
+        }
+    }
+    
     
     /**
      * @since 0.8.0
@@ -73,10 +97,12 @@ public class ExprNotFoundException extends JosmanException {
     /**
      * Creates the exception using the provided message
      * 
+     * @param relPath the path to the file where the proble originates
      * @since 0.8.0
      */
-    public ExprNotFoundException(String msg, String expr) {
+    public ExprNotFoundException(String msg, String expr, String relPath) {
         super(msg);
         setExpr(expr);
+        setRelPath(relPath);
     }
 }

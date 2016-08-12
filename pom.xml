@@ -126,8 +126,7 @@
 			<plugin>
 				<groupId>eu.trentorise.opendata</groupId>
 				<artifactId>josman-maven-plugin</artifactId>
-				<!-- let's keep old version for josman itself! -->
-				<version>0.7.0</version>
+				<version>${project.version}</version>
 				<configuration>
 				</configuration>
 			</plugin>
