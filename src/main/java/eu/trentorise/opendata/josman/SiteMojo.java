@@ -49,7 +49,7 @@ public class SiteMojo extends JosmanMojo {
             josman.generateSite();
         }
         catch (Exception ex) {
-            throw new MojoExecutionException("JOSMAN: ERROR WHILE CREATING THE SITE !!\n", ex);
+            throw new MojoExecutionException("\n\n  !!!!!!   JOSMAN: ERROR WHILE CREATING THE SITE !!!!!\n\n", ex);
         }
         info("");
         info("");

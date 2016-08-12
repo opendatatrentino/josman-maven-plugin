@@ -870,7 +870,8 @@ public final class Josmans {
      * returns a map
      * expr -> result.
      * 
-     * @param relPath the path to the file containing the expression
+     * @param relPath
+     *            the path to the file containing the expression
      * @since 0.8.0
      */
     public static Map<String, String> evalExprsInText(String text, String relPath, ClassLoader classLoader) {
@@ -954,12 +955,14 @@ public final class Josmans {
                 String stringRes = evalExpr(expr, evalMap, evalNow, relPath, classLoader);
                 results.add(stringRes);
             } catch (ExprNotFoundException ex) {
-                LOG.log(Level.SEVERE, "Following expression wasn't found among precalculated ones: " + expr, ex);
-                LOG.log(Level.SEVERE, "                                                   in file: " + relPath);
+                LOG.log(Level.SEVERE, "Couldn't find expression among precalculated ones!\n"
+                        + "     Expression: " + expr + "\n"
+                        + "        in file: " + relPath);                
                 missingExprs.add(expr);
             } catch (Exception ex) {
-                LOG.log(Level.SEVERE, "Error while evaluating expression: " + expr, ex);
-                LOG.log(Level.SEVERE, "                          in file: " + relPath);
+                LOG.log(Level.SEVERE, "Error while evaluating expression! \n"
+                                      + "    Expression: "  + expr + "\n"
+                                      + "       in file: " + relPath, ex);
                 
                 erroneusExprs.add(expr);
             }
@@ -997,7 +1000,8 @@ public final class Josmans {
 
     /**
      * 
-     * @param relPath the path to the file containing the expression
+     * @param relPath
+     *            the path to the file containing the expression
      * 
      * @since 0.8.0
      */
@@ -1011,7 +1015,8 @@ public final class Josmans {
     /**
      * See {@link #expandExprs(String, Map, ClassLoader)}
      * 
-     * @param relPath the path to the file containing the expression
+     * @param relPath
+     *            the path to the file containing the expression
      * 
      * @throws ExprNotFoundException
      * 

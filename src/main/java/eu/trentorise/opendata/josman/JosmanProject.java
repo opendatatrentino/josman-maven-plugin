@@ -905,7 +905,7 @@ public class JosmanProject {
                 processDocsDir(snapshotVersion, curEvals);
             } catch (ExprNotFoundException ex) {
                 throw new ExprNotFoundException("SNAPSHOT VERSION IS MISSING EVALUATED EXPRESSION: "
-                        + ex.getExpr() + " FOUND IN FILE " + ex.getRelPath()+ " !   MAYBE YOU FORGOT TO RUN   mvn josman:eval   ?", ex.getExpr(), ex.getRelPath(), ex);
+                        + ex.getExpr() + " FOUND IN FILE " + ex.getRelPath()+ "\n!!!!!!   MAYBE YOU FORGOT TO RUN   mvn josman:eval ? \n\n", ex.getExpr(), ex.getRelPath());
             }
             
             createLatestDocsDirectory(snapshotVersion);
