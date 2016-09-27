@@ -1185,9 +1185,10 @@ public class JosmanProject {
                         .endsWith(".md")) {
                     String text = FileUtils.readFileToString(file, "UTF-8");
                     evals.putAll(Josmans.evalExprsInText(text, 
-                                                            file.getAbsolutePath(),
+                                                            file.getPath(),
                                                             Thread.currentThread()
-                                                             .getContextClassLoader()));
+                                                             .getContextClassLoader(),
+                                                             snapshotMode));
                 }
             }
 

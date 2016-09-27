@@ -20,8 +20,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 /**
  *
@@ -297,5 +295,31 @@ public class JosmansTest {
     public static String sayHello(){
         return "Hello!";
     }
-    
+
+
+    /**
+     * @since 0.8.0
+     */
+    @Test
+    public void testCheckExpr(){
+        
+        try {
+            Josmans.checkExpr("");
+            Assert.fail("Shouldn't arrive here!");
+        } catch (IllegalArgumentException ex){
+            
+        }
+        
+        try {
+            Josmans.checkExpr(" ");
+            Assert.fail("Shouldn't arrive here!");
+        } catch (IllegalArgumentException ex){
+            
+        }
+                
+        Josmans.checkExpr("a");
+        Josmans.checkExpr("123");
+        
+    }
+
 }
