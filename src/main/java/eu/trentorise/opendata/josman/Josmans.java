@@ -921,7 +921,8 @@ public final class Josmans {
      *            call.
      * @param text The text to parse
      * 
-     * @param relPath the path of the file we are expanding 
+     * @param relPath the path of the file we are expanding
+     * @param ignoreEvalErrors if true expressions in error will be just be substituted with their tag 
      * 
      * @since 0.8.0
      */
@@ -929,10 +930,22 @@ public final class Josmans {
             String text,
             Map<String, String> evalMap,
             String relPath,
-            ClassLoader classLoader) {
+            ClassLoader classLoader,
+            boolean ignoreEvalErrors) {               
+        
         checkNotNull(text);
         checkNotNull(classLoader);
         checkNotNull(evalMap);
+        
+        Level logLevel;
+        Level exceptionLevel;
+        if (ignoreEvalErrors){
+            logLevel = Level.WARNING;
+            exceptionLevel = Level.FINE;
+        } else {                    
+            logLevel = Level.SEVERE;
+            exceptionLevel = Level.SEVERE;
+        }
 
         Pattern pattern = Pattern.compile(EVAL_PATTERN);
         Matcher matcher = pattern.matcher(text);
@@ -955,14 +968,31 @@ public final class Josmans {
                 String stringRes = evalExpr(expr, evalMap, evalNow, relPath, classLoader);
                 results.add(stringRes);
             } catch (ExprNotFoundException ex) {
-                LOG.log(Level.SEVERE, "Couldn't find expression among precalculated ones!\n"
+                String msg;
+                if (ignoreEvalErrors){
+                    msg = "Couldn't find expression among precalculated ones, will ignore it.\n";
+                    results.add("$eval{"+expr+"}");
+                }  else {
+                    msg = "Couldn't find expression among precalculated ones!\n";
+                }
+                LOG.log(logLevel, msg + "\n"
                         + "     Expression: " + expr + "\n"
-                        + "        in file: " + relPath);                
+                        + "        in file: " + relPath + "\n");
                 missingExprs.add(expr);
+                
             } catch (Exception ex) {
-                LOG.log(Level.SEVERE, "Error while evaluating expression! \n"
-                                      + "    Expression: "  + expr + "\n"
-                                      + "       in file: " + relPath, ex);
+                String msg;
+                if (ignoreEvalErrors){
+                    results.add("$eval{"+expr+"}");
+                    msg = "Couldn't eval expression, will ignore it.";                    
+                } else {
+                    msg = "Error while evaluating expression!";                                       
+                }
+                LOG.log(logLevel, msg +"\n" 
+                        + "    Expression: "  + expr + "\n"
+                        + "       in file: " + relPath + "\n");
+                LOG.log(exceptionLevel,"Error was:",  ex);
+                
                 
                 erroneusExprs.add(expr);
             }
@@ -970,11 +1000,24 @@ public final class Josmans {
         }
 
         if (!missingExprs.isEmpty()) {
-            throw new ExprNotFoundException("Found missing expression(s)! See log for details.", missingExprs.get(0), relPath);
+            String msg = "Found missing expression(s)! See log for details.";
+            if (ignoreEvalErrors){
+                LOG.log(logLevel, msg+"\n");
+            } else {                    
+                throw new ExprNotFoundException(msg, missingExprs.get(0), relPath);
+            }                       
         }
 
         if (!erroneusExprs.isEmpty()) {
-            throw new JosmanException("Error while calculating expression(s)! See log for details.");
+            String msg;
+            if (ignoreEvalErrors){
+                msg = "Had issues while calculating expression(s)! See log for details.";
+                LOG.log(logLevel, msg+"\n");
+            } else {                    
+                msg = "Error while calculating expression(s)! See log for details.";
+                throw new JosmanException(msg);    
+            }                       
+            
         }
 
         StringBuilder sb = new StringBuilder();

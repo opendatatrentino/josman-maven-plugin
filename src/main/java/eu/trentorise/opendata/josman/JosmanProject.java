@@ -105,7 +105,7 @@ public class JosmanProject {
     public static final String CHANGES_MD = "CHANGES.md";
 
     private MavenProject mvnPrj;
-    private boolean snapshotMode;
+    private boolean snapshotMode;    
     private File sourceRepoDir;
     private File pagesDir;
     private ImmutableList<SemVersion> ignoredVersions;
@@ -436,7 +436,8 @@ public class JosmanProject {
                     evals,
                     relPath,
                     Thread.currentThread()
-                          .getContextClassLoader());
+                          .getContextClassLoader(),
+                           snapshotMode);
 
 
         String skeletonString;

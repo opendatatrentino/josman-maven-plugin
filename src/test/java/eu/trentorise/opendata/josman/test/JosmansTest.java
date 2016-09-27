@@ -152,7 +152,8 @@ public class JosmansTest {
                 + "-$eval{c.d()}" ,
                 ImmutableMap.of("a.b","1", "c.d()","2"),
                 "test-path",
-                this.getClass().getClassLoader());
+                this.getClass().getClassLoader(), 
+                false);
         
         assertEquals("1-2", output);
     }    
@@ -167,7 +168,8 @@ public class JosmansTest {
         Josmans.expandExprs("$eval{a.b}}" ,
                 Collections.EMPTY_MAP,
                 "test-path",                
-                this.getClass().getClassLoader());
+                this.getClass().getClassLoader(),
+                false);
         Assert.fail("Shouldn't arrive here!");
         } catch (ExprNotFoundException ex){
             
@@ -184,7 +186,8 @@ public class JosmansTest {
                 + "-$evalNow{"+this.getClass().getCanonicalName()+".TEST_STRING}" ,
                 Collections.EMPTY_MAP,
                 "test-path",                
-                this.getClass().getClassLoader());
+                this.getClass().getClassLoader(),
+                false);
         
         assertEquals("3-"+TEST_STRING, output);
     }
@@ -197,7 +200,8 @@ public class JosmansTest {
         String output = Josmans.expandExprs("a$evalNow{ "+this.getClass().getCanonicalName() + ".number() }b",
                 Collections.EMPTY_MAP,
                 "test-path",                
-                this.getClass().getClassLoader());        
+                this.getClass().getClassLoader(),
+                false);        
         
         assertEquals("a3b", output);
     }
@@ -210,7 +214,8 @@ public class JosmansTest {
         String output = Josmans.expandExprs("",
                 Collections.EMPTY_MAP,
                 "test-path",                
-                this.getClass().getClassLoader());        
+                this.getClass().getClassLoader(),
+                false);        
         
         assertEquals("", output);
     }
@@ -225,13 +230,30 @@ public class JosmansTest {
             Josmans.expandExprs("a$evalNow{ "+this.getClass().getCanonicalName() + ".withParams(4) }b",
                     Collections.EMPTY_MAP,
                     "test-path",                    
-                    this.getClass().getClassLoader());
+                    this.getClass().getClassLoader(),
+                    false);
             Assert.fail("Params shouldn't be supported!");
         } catch (JosmanException ex){
             
         }
         
         //assertEquals("4", output);
+    }
+    
+    /**
+     * @since 0.8.0
+     */
+    @Test
+    public void testEvalIgnoreErrors(){
+                
+        String output = Josmans.expandExprs("a$evalNow{b666}c",
+                Collections.EMPTY_MAP,
+                "test-path",                    
+                this.getClass().getClassLoader(),
+                true);
+        
+        
+        assertEquals("a$eval{b666}c", output);
     }
 
     /**
@@ -242,7 +264,8 @@ public class JosmansTest {
         String output = Josmans.expandExprs("$'evalNow{a}",
                 Collections.EMPTY_MAP,
                 "test-path",                
-                this.getClass().getClassLoader());
+                this.getClass().getClassLoader(),
+                false);
         assertEquals("$evalNow{a}", output);
     }
     

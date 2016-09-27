@@ -24,6 +24,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /**
@@ -34,7 +35,8 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
  */
 @Mojo(name = "site", requiresDependencyResolution=ResolutionScope.TEST)
 public class SiteMojo extends JosmanMojo {
-
+    
+    
     public SiteMojo() {
         super("JOSMAN SITE");
     }
