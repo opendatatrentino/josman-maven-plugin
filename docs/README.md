@@ -49,7 +49,7 @@ Or in `pom.xml`  configuration:
 
 ```
             <plugin>
-                <groupId>eu.trentorise.opendata.josman</groupId>
+                <groupId>eu.trentorise.opendata</groupId>
                 <artifactId>josman-maven-plugin</artifactId>                
                 <configuration>
                     <snapshot>true</snapshot>    
@@ -61,7 +61,7 @@ To ignore some version, you can use `ignoredVersions`:
 
 ```
             <plugin>
-                <groupId>eu.trentorise.opendata.josman</groupId>
+                <groupId>eu.trentorise.opendata</groupId>
                 <artifactId>josman-maven-plugin</artifactId>                
                 <configuration>
                     <ignoredVersions>
