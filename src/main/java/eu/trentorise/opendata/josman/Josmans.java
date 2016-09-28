@@ -933,7 +933,7 @@ public final class Josmans {
 
         if (evalError) {
             if (ignoreEvalErrors){
-                LOG.log(logLevel, "Had issues while evaluating expression(s)! See log for details."); 
+                LOG.log(logLevel, "\nHad issues while evaluating expression(s)! See log for details.\n"); 
             } else {
                 throw new JosmanException("Error occurred while evaluating expression(s)! See log for details.");    
             }            
