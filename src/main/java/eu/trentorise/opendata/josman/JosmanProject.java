@@ -103,6 +103,9 @@ public class JosmanProject {
 
     public static final String README_MD = "README.md";
     public static final String CHANGES_MD = "CHANGES.md";
+    
+    static final String JOSMAN_PROGRAM_LOGO_LINK = "#josman-program-logo-link";
+    static final String JOSMAN_ORG_LOGO_LINK = "#josman-org-logo-link";
 
     private MavenProject mvnPrj;
     private boolean snapshotMode;    
@@ -297,12 +300,28 @@ public class JosmanProject {
     }
 
     static String programLogoName(String repoName) {
-        return repoName + "-logo-200px.png";
+        return repoName + "-200px.png";
     }
 
+        
     static File programLogo(File sourceDocsDir, String repoName) {
         return new File(sourceDocsDir, "img" + File.separator + programLogoName(repoName));
     }
+    
+    /**
+     * @since 0.8.0
+     */    
+    static String orgLogoName(String repoName) {
+        return repoName + "-org-200px.png";
+    }    
+    
+    /**
+     * @since 0.8.0
+     */
+    static File orgLogo(File sourceDocsDir, String repoName) {
+        return new File(sourceDocsDir, "img" + File.separator + orgLogoName(repoName));
+    }
+
 
     /**
      * Copies provided stream to destination, which is determined according to
@@ -544,13 +563,29 @@ public class JosmanProject {
 
         if (programLogo.exists()) {
             skeleton.$("#josman-program-logo")
-                    .attr("src", prependedPath + "img/" + mvnPrj.getArtifactId() + "-logo-200px.png");
-            skeleton.$("#josman-program-logo-link")
+                    .attr("src", prependedPath + "img/" + programLogoName(mvnPrj.getArtifactId()));
+            skeleton.$(JOSMAN_PROGRAM_LOGO_LINK)
                     .attr("href", prependedPath + "index.html");
         } else {
-            skeleton.$("#josman-program-logo-link")
+            LOG.warning("Couldn't find program logo in " + programLogo.getAbsolutePath());
+            skeleton.$(JOSMAN_PROGRAM_LOGO_LINK)
                     .css("display", "none");
         }
+
+        File orgLogo = orgLogo(sourceDocsDir(), mvnPrj.getArtifactId());
+
+        if (orgLogo.exists()) {
+            skeleton.$("#josman-org-logo")
+                    .attr("src", prependedPath + "img/" + orgLogoName(mvnPrj.getArtifactId()));
+            skeleton.$(JOSMAN_ORG_LOGO_LINK)
+                    .attr("href", prependedPath + "index.html");
+        } else {
+            LOG.warning("Couldn't find organization logo in " + orgLogo.getAbsolutePath());
+            skeleton.$(JOSMAN_ORG_LOGO_LINK)
+                    .css("display", "none");
+        }
+        
+        
 
         skeleton.$("#josman-wiki")
                 .attr("href", Josmans.repoWiki(Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId()));
@@ -990,6 +1025,16 @@ public class JosmanProject {
 
                 FileUtils.copyFile(programLogo, new File(targetImgDir, programLogoName(mvnPrj.getArtifactId())));
             }
+            
+            File orgLogo = orgLogo(sourceDocsDir(), mvnPrj.getArtifactId());
+
+            if (orgLogo.exists()) {
+                LOG.log(Level.INFO, "Found org logo: {0}", orgLogo.getAbsolutePath());
+                LOG.log(Level.INFO, "      copying it into dir {0}", targetImgDir.getAbsolutePath());
+
+                FileUtils.copyFile(orgLogo, new File(targetImgDir, orgLogoName(mvnPrj.getArtifactId())));
+            }
+            
 
             FileUtils.copyFile(new File(sourceRepoDir, "LICENSE.txt"), new File(pagesDir, "LICENSE.txt"));
 

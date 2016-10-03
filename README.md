@@ -20,7 +20,7 @@ Maven plugin for managing documentation of Java open source programs.
   * well integrated with Github
   * modeled after  <a href="http://semver.org" target="_blank">semantic versioning</a> principles
   * allows maintainance of present and past versions of the sofware  
-  * has some support for expression execution  
+  * supports some scripting  
   * designed for Maven 3
   * supports Java 7+
 
