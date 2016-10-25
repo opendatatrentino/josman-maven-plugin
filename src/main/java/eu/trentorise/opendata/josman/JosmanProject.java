@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,6 +31,7 @@ import org.apache.commons.io.DirectoryWalker;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
+import org.apache.maven.model.Scm;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.project.MavenProject;
 import org.eclipse.egit.github.core.RepositoryTag;
@@ -377,6 +379,9 @@ public class JosmanProject {
         }
         return targetFile;
     }
+    
+    
+     
 
     /**
      * Writes an md stream as html to outputFile
@@ -438,18 +443,54 @@ public class JosmanProject {
                                                       .replaceAll("#'\\{majorMinorVersion}", "#{majorMinorVersion}")
                                                       .replaceAll("#'\\{repoRelease}", "#{repoRelease}")                                                       
                                                       
-                                                      .replaceAll("jedoc", "josman")
-                                                      
-                                                      
-                                                       .replaceAll("\\$\\{project.version}", version.toString())
+                                                      .replaceAll("jedoc", "josman")                                                                                                          
+                                                       
                                                        .replaceAll("\\$\\{josman.majorMinorVersion}", Josmans.majorMinor(version))
                                                        .replaceAll("\\$\\{josman.repoRelease}",
                                                                 Josmans.repoRelease(Josmans.organization(mvnPrj.getUrl()),
                                                                         mvnPrj.getArtifactId(), version))
-                                                       .replaceAll("\\$'\\{project.version}", "\\${project.version}")
                                                        .replaceAll("\\$'\\{josman.majorMinorVersion}", "\\${josman.majorMinorVersion}")
                                                        .replaceAll("\\$'\\{josman.repoRelease}", "\\${josman.repoRelease}");                                                       
-                                                       
+        // injecting maven pro
+        Properties props = mvnPrj.getProperties();
+
+        if (props != null){
+            
+            for (Object obj : props.keySet()){
+                String key = (String) obj;
+                String prop = props.getProperty(key);
+                
+                filteredSourceMdString = replaceProperty(filteredSourceMdString, key, prop);                
+            }            
+        }
+                       
+        Scm scm;
+        if (mvnPrj.getScm() == null){
+            scm = new Scm();
+            scm.setConnection("");
+            scm.setDeveloperConnection("");
+            scm.setTag("");
+            scm.setUrl("");
+        } else {
+            scm = mvnPrj.getScm();
+        }
+        filteredSourceMdString = replaceProperties(                
+                filteredSourceMdString, "project.artifactId", mvnPrj.getArtifactId(),
+                "project.groupId", mvnPrj.getGroupId(),
+                "project.description", mvnPrj.getDescription(),
+                "project.name", mvnPrj.getName(),
+                "project.version", mvnPrj.getVersion(),
+                "project.url", mvnPrj.getUrl(),
+                "project.basedir", mvnPrj.getBasedir() == null ? "" : mvnPrj.getBasedir().getAbsolutePath(),
+                "project.scm.connection", scm.getConnection(),
+                "project.scm.developerConnection", scm.getDeveloperConnection(),
+                "project.scm.tag", scm.getTag(),
+                "project.scm.url", scm.getUrl(),                
+                "pom.artifactId", mvnPrj.getArtifactId(),                
+                "pom.groupId", mvnPrj.getGroupId(),
+                "pom.description", mvnPrj.getDescription(),
+                "pom.name", mvnPrj.getName(),
+                "pom.version", mvnPrj.getVersion()); 
         
         filteredSourceMdString = Josmans.expandExprs(filteredSourceMdString,
                     evals,
@@ -457,7 +498,6 @@ public class JosmanProject {
                     Thread.currentThread()
                           .getContextClassLoader(),
                            snapshotMode);
-
 
         String skeletonString;
         try {
@@ -673,6 +713,38 @@ public class JosmanProject {
             throw new JosmanIoException("Couldn't write into " + targetFile.getAbsolutePath() + "!", ex);
         }
 
+    }
+    
+    /**
+     * Replaces key / value properties in {@code text}
+     * 
+     * @since 0.8.0
+     */
+    // todo not efficient
+    private String replaceProperties(String text, String... props) {
+        
+        String ret = text;       
+        
+        checkArgument(props.length % 2 == 0, 
+                "Props must be an even sequence of key/value pairs!"
+                + " Found instead " + props.length + " elements: " + props);
+        
+        for (int i = 0; i < props.length; i += 2){
+            String key = props[i];
+            String prop = props[i+1];
+            ret = replaceProperty(ret, key, prop);
+        }
+        return ret;
+    }
+
+    /**
+     * @since 0.8.0
+     */
+    private String replaceProperty(String text, String key, String prop) {        
+        return text
+                .replaceAll("\\$\\{" + key + "}", prop)
+                .replaceAll("\\$'\\{" + key + "}", "\\${" + key + "}");                
+        
     }
 
     private static void addVersionHeaderTag(Jerry skeleton, String prependedPath, SemVersion version,

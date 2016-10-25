@@ -382,7 +382,7 @@ public final class Josmans {
 
     /**
      * Returns the github release code url, i.e.
-     * https://github.com/opendatatrentino/josman/blob/todo-releaseTag
+     * https://github.com/opendatatrentino/josman-maven-plugin/blob/josman-maven-plugin-0.7.0
      *
      * @param repoName
      *            i.e. josman
@@ -408,7 +408,7 @@ public final class Josmans {
 
     /**
      * Returns the github issues url, i.e.
-     * https://github.com/opendatatrentino/josman/issues
+     * https://github.com/opendatatrentino/josman-maven-plugin/issues
      *
      * @param organization
      *            i.e. opendatatrentino
@@ -421,7 +421,7 @@ public final class Josmans {
 
     /**
      * Returns the github milestones url, i.e.
-     * https://github.com/opendatatrentino/josman/milestones
+     * https://github.com/opendatatrentino/josman-mvan-plugin/milestones
      *
      * @param organization
      *            i.e. opendatatrentino
