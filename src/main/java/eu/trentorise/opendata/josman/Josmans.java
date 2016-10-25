@@ -28,6 +28,8 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -73,9 +75,6 @@ public final class Josmans {
      */
     public static final String[] REQUIRED_DOCS = new String[] { "LICENSE.txt", "README.md", "docs/README.md" };
 
-    
-    
-    
     /**
      * @since 0.8.0
      */
@@ -84,7 +83,8 @@ public final class Josmans {
     /**
      * @since 0.8.0
      */
-    private final static Pattern EVAL_PATTERN = Pattern.compile("\\$eval(Now)?\\{\\s*(" + EXPR_PATTERN.toString() + ")\\s*\\}");
+    private final static Pattern EVAL_PATTERN = Pattern.compile(
+            "\\$eval(Now)?\\{\\s*(" + EXPR_PATTERN.toString() + ")\\s*\\}");
 
     /**
      * @since 0.8.0
@@ -274,7 +274,7 @@ public final class Josmans {
      * being the most important.
      */
     static List<String> orderRelpaths(List<String> relpaths) {
-        List<String> ret = new ArrayList(relpaths);
+        List<String> ret = new ArrayList<>(relpaths);
 
         String readme = DOCS_FOLDER + "/" + README_MD;
         String changes = DOCS_FOLDER + "/" + CHANGES_MD;
@@ -445,12 +445,150 @@ public final class Josmans {
     }
 
     public static SemVersion latestVersion(String repoName, List<RepositoryTag> tags) {
-        TodUtils.checkNotEmpty(tags, "Invalid repository tags!");
+        Preconditions.checkNotEmpty(tags, "Invalid repository tags!");
         SortedMap<String, RepositoryTag> filteredTags = Josmans.versionTags(repoName, tags);
         if (filteredTags.isEmpty()) {
             throw new JosmanNotFoundException("Couldn't find any released version!");
         }
         return Josmans.version(repoName, filteredTags.lastKey());
+    }
+
+    /**
+     * Returns a new url friendly and normalized path.
+     *
+     * @param relPath
+     * @param path
+     *            a path that may contain .md files and can have end like urls
+     *            like my/path/to/file.md?query#fragment
+     *            
+     * @since 0.1.0
+     */
+    public static String htmlizeRelativePath(String relPath, String path) {
+        if (!path.startsWith("../")) {
+            return htmlizePath(path);
+        } else {
+                       
+            URI rp;
+            URI p;
+            try {
+                rp = new URI(relPath);
+                LOG.fine("rp = " + rp.getPath());
+                p = new URI(path);
+                LOG.fine("p = " + p.getPath());
+            } catch (URISyntaxException e) {
+                throw new JosmanException(e);
+            }
+                                   
+            int depth = 0; 
+            
+            if (isRootpath(rp.getPath())) {                
+                // todo
+                return htmlizeExternalPath(p.getPath(), depth);
+            } else {
+                rp = parentPath(rp);
+            }
+                        
+            do  {
+                if (isRootpath(rp.getPath())) {
+                    return htmlizeExternalPath(p.getPath(), depth);
+                } else {
+                    rp = parentPath(rp);
+                    depth += 1;
+                    
+                    if (p.getPath()
+                         .length() > 3) {
+                        try {
+                            p = new URI(p.getPath()
+                                         .substring(3));
+                        } catch (URISyntaxException e) {
+                            throw new JosmanException(e);
+                        }
+                    } else {
+                        return htmlizePath(path);
+                    }
+
+                }
+            } while(p.getPath()
+                    .startsWith("../"));
+            
+            return htmlizePath(path);
+        }
+    }
+
+    
+    /**
+     * @since 0.8.0
+     */
+    private static URI parentPath(URI rp) {
+        checkNotNull(rp);
+        return rp.getPath().endsWith("/") ? rp.resolve("..") : rp.resolve(".");
+    }
+
+
+    /**
+     * @since 0.8.0
+     */
+    private static Pattern EXTERNAL_PATTERN = Pattern.compile("\\.\\./\\.\\./\\.\\./([^/]+)/blob/branch-([\\.|\\d]+)/?");
+    
+    
+    /**
+     * @since 0.8.0
+     */
+    private static Pattern EXTERNAL_DOCS_PATTERN = Pattern.compile(EXTERNAL_PATTERN.toString() + "/docs(/(.*)|/)");
+
+    /**
+     * @since 0.8.0
+     */
+    private static Pattern EXTERNAL_ROOT_FILES = Pattern.compile(EXTERNAL_PATTERN.toString() 
+            + "(/"+README_MD
+            +"|/"+JosmanProject.LICENSE_TXT
+            +"|/)");
+    
+    
+    /**
+     * @since 0.8.0
+     */
+    private static String htmlizeExternalPath(String rootedPath, int depth) {                   
+        
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < depth; i++){
+            sb.append("../");
+        }
+        
+        Matcher mDocs = EXTERNAL_DOCS_PATTERN.matcher(rootedPath);
+        Matcher mRootFile = EXTERNAL_ROOT_FILES.matcher(rootedPath);
+        Matcher m;
+                
+        if (mDocs.matches()){
+            m = mDocs;
+        } else if (mRootFile.matches()){
+            m = mRootFile;
+        } else {
+            m = null;
+        }
+        
+        if (m == null){
+            return sb.toString() + htmlizePath(rootedPath);
+        } else {                   
+            /*
+                0: [0,35] ../../../jackan/blob/branch-0.3/bla
+                1: [9,15] jackan
+                2: [28,31] 0.3
+                3: [31,35] /bla
+                4: [32,35] bla             
+            */
+            String otherRepoName = m.group(1);
+            String otherVersion = m.group(2);
+            String otherPath = m.group(3);
+
+            sb.append("../");
+            sb.append(otherRepoName);
+            if (mDocs.matches()){
+                sb.append("/" + otherVersion);
+            }            
+            sb.append(htmlizePath(otherPath));
+            return sb.toString();
+        }
     }
 
     /**
@@ -513,7 +651,7 @@ public final class Josmans {
      *             on empty string
      */
     public static String checkNotMeaningful(@Nullable String string, @Nullable Object prependedErrorMessage) {
-        TodUtils.checkNotEmpty(string, prependedErrorMessage);
+        Preconditions.checkNotEmpty(string, prependedErrorMessage);
         for (int i = 0; i < string.length(); i++) {
             if (string.charAt(i) != '\n' && string.charAt(i) != '\t' && string.charAt(i) != ' ') {
                 return string;
@@ -825,9 +963,18 @@ public final class Josmans {
      */
     static boolean isRootpath(String relPath) {
         checkNotNull(relPath);
-        return !(relPath.equals(DOCS_FOLDER)
+        boolean docsFolder = (relPath.equals(DOCS_FOLDER)
                 || relPath.startsWith(DOCS_FOLDER + "/")
                 || relPath.startsWith(DOCS_FOLDER + "\\"));
+        if (docsFolder){
+            return false;
+        } else {
+            // todo this should probably raise an exception!
+            if (relPath.length() > 1 && relPath.contains("/")){
+                LOG.warning("Found a relPath which is not a root one nor in docs !! relPath is: " + relPath );
+            } 
+            return true;
+        }
     }
 
     /**
@@ -878,26 +1025,25 @@ public final class Josmans {
      * @since 0.8.0
      */
     public static Map<String, String> evalExprsInText(
-            String text, 
-            String relPath, 
+            String text,
+            String relPath,
             ClassLoader classLoader,
             boolean ignoreEvalErrors) {
-        
+
         checkNotNull(text);
         checkNotNull(classLoader);
 
         Level logLevel;
         Level exceptionLevel;
-        
-        if (ignoreEvalErrors){
+
+        if (ignoreEvalErrors) {
             logLevel = Level.WARNING;
             exceptionLevel = Level.FINE;
-        } else {                    
+        } else {
             logLevel = Level.SEVERE;
             exceptionLevel = Level.SEVERE;
         }
 
-        
         Map<String, String> ret = new HashMap<>();
 
         Matcher matcher = EVAL_PATTERN.matcher(text);
@@ -913,14 +1059,14 @@ public final class Josmans {
                 ret.put(expr, stringRes);
             } catch (Exception ex) {
                 String msg;
-                if (ignoreEvalErrors){
+                if (ignoreEvalErrors) {
                     msg = "Couldn't evaluate expression, ignoring it.";
                     try {
                         checkExpr(expr);
                         ret.put(expr, "${" + expr + "}");
-                    } catch (Exception e){
+                    } catch (Exception e) {
                     }
-                    
+
                 } else {
                     msg = "Error while evaluating expression!";
                 }
@@ -933,11 +1079,11 @@ public final class Josmans {
         }
 
         if (evalError) {
-            if (ignoreEvalErrors){
-                LOG.log(logLevel, "\nHad issues while evaluating expression(s)! See log for details.\n"); 
+            if (ignoreEvalErrors) {
+                LOG.log(logLevel, "\nHad issues while evaluating expression(s)! See log for details.\n");
             } else {
-                throw new JosmanException("Error occurred while evaluating expression(s)! See log for details.");    
-            }            
+                throw new JosmanException("Error occurred while evaluating expression(s)! See log for details.");
+            }
         }
 
         return ret;
@@ -945,10 +1091,12 @@ public final class Josmans {
 
     /**
      * 
-     * Processes input {@code text} by replacing expressions like $eval{EXPR} and
-     * $evalNow{EXPR} with their execution, and then returns the resulting expanded string.
+     * Processes input {@code text} by replacing expressions like $eval{EXPR}
+     * and
+     * $evalNow{EXPR} with their execution, and then returns the resulting
+     * expanded string.
      * See manual for supported expressions.
-     *  
+     * 
      * @throws ExprNotFoundException
      *             if an expression is not found in {@code evalMap}
      * 
@@ -956,10 +1104,14 @@ public final class Josmans {
      *            expressions in $eval{} statements must be contained in this
      *            map. $evalNow{} expressions instead will be recomputed at each
      *            call.
-     * @param text The text to parse
+     * @param text
+     *            The text to parse
      * 
-     * @param relPath the path of the file we are expanding
-     * @param ignoreEvalErrors if true expressions in error will be just be substituted with their tag 
+     * @param relPath
+     *            the path of the file we are expanding
+     * @param ignoreEvalErrors
+     *            if true expressions in error will be just be substituted with
+     *            their tag
      * 
      * @since 0.8.0
      */
@@ -968,23 +1120,22 @@ public final class Josmans {
             Map<String, String> evalMap,
             String relPath,
             ClassLoader classLoader,
-            boolean ignoreEvalErrors) {               
-        
+            boolean ignoreEvalErrors) {
+
         checkNotNull(text);
         checkNotNull(classLoader);
         checkNotNull(evalMap);
-        
+
         Level logLevel;
         Level exceptionLevel;
-        if (ignoreEvalErrors){
+        if (ignoreEvalErrors) {
             logLevel = Level.WARNING;
             exceptionLevel = Level.FINE;
-        } else {                    
+        } else {
             logLevel = Level.SEVERE;
             exceptionLevel = Level.SEVERE;
         }
 
-        
         Matcher matcher = EVAL_PATTERN.matcher(text);
         List<Integer> execStarts = new ArrayList<>();
         List<Integer> execEnds = new ArrayList<>();
@@ -1006,28 +1157,27 @@ public final class Josmans {
                 results.add(stringRes);
             } catch (ExprNotFoundException ex) {
                 String msg;
-                if (ignoreEvalErrors){
+                if (ignoreEvalErrors) {
                     msg = "Couldn't find expression among precalculated ones, will ignore it.\n";
-                    results.add("$eval{"+expr+"}");
-                }  else {
+                    results.add("$eval{" + expr + "}");
+                } else {
                     msg = "Couldn't find expression among precalculated ones!\n";
                 }
                 LOG.log(logLevel, msg + "\n" + reportExpr(expr, relPath));
                 missingExprs.add(expr);
-                
+
             } catch (Exception ex) {
                 String msg;
-                if (ignoreEvalErrors){
-                    results.add("$eval{"+expr+"}");
-                    msg = "Couldn't eval expression, will ignore it.";                    
+                if (ignoreEvalErrors) {
+                    results.add("$eval{" + expr + "}");
+                    msg = "Couldn't eval expression, will ignore it.";
                 } else {
-                    msg = "Error while evaluating expression!";                                       
+                    msg = "Error while evaluating expression!";
                 }
-                LOG.log(logLevel, msg +"\n"
+                LOG.log(logLevel, msg + "\n"
                         + reportExpr(expr, relPath));
-                LOG.log(exceptionLevel,"Error was:",  ex);
-                
-                
+                LOG.log(exceptionLevel, "Error was:", ex);
+
                 erroneusExprs.add(expr);
             }
 
@@ -1035,23 +1185,23 @@ public final class Josmans {
 
         if (!missingExprs.isEmpty()) {
             String msg = "Found missing expression(s)! See log for details.";
-            if (ignoreEvalErrors){
-                LOG.log(logLevel, msg+"\n");
-            } else {                    
+            if (ignoreEvalErrors) {
+                LOG.log(logLevel, msg + "\n");
+            } else {
                 throw new ExprNotFoundException(msg, missingExprs.get(0), relPath);
-            }                       
+            }
         }
 
         if (!erroneusExprs.isEmpty()) {
             String msg;
-            if (ignoreEvalErrors){
+            if (ignoreEvalErrors) {
                 msg = "Had issues while calculating expression(s)! See log for details.";
-                LOG.log(logLevel, msg+"\n");
-            } else {                    
+                LOG.log(logLevel, msg + "\n");
+            } else {
                 msg = "Error while calculating expression(s)! See log for details.";
-                throw new JosmanException(msg);    
-            }                       
-            
+                throw new JosmanException(msg);
+            }
+
         }
 
         StringBuilder sb = new StringBuilder();
@@ -1072,7 +1222,7 @@ public final class Josmans {
 
         return sb.toString()
                  .replace("$\'evalNow{", "$evalNow{")
-                 .replace("$\'eval{", "$eval{");        
+                 .replace("$\'eval{", "$eval{");
     }
 
     /**
@@ -1085,7 +1235,7 @@ public final class Josmans {
      */
     private static String reportExpr(String expr, String relPath) {
         return "     Expression: " + expr + "\n"
-             + "        in file: " + relPath + "\n";
+                + "        in file: " + relPath + "\n";
     }
 
     /**
@@ -1125,12 +1275,12 @@ public final class Josmans {
 
         String[] names = expr.split("\\.");
 
-        checkExpr(expr);        
-        
+        checkExpr(expr);
+
         Matcher matcher = EXPR_PATTERN.matcher(expr);
 
         matcher.find();
-        
+
         if (evalNow) {
             String methodOrFieldName;
             if (matcher.group(1) == null) { // field
@@ -1149,7 +1299,7 @@ public final class Josmans {
             } catch (Exception ex) {
                 throw new JosmanException("Error while loading class for calling method " + expr, ex);
             }
-            String stringRes;
+
             try {
 
                 java.lang.reflect.Method method;
@@ -1190,11 +1340,11 @@ public final class Josmans {
      * @since 0.8.0
      */
     public static void checkExpr(String expr) {
-        
-        if (expr == null){
+
+        if (expr == null) {
             throw new IllegalArgumentException("Found null expression!");
         }
-        
+
         Matcher matcher = EXPR_PATTERN.matcher(expr);
 
         if (!matcher.matches()) {
@@ -1247,7 +1397,7 @@ public final class Josmans {
             csvFilePrinter.printRecord(EVAL_CSV_FILE_HEADER);
 
             for (String expr : evals.keySet()) {
-                List<String> evalRecord = new ArrayList<>();                
+                List<String> evalRecord = new ArrayList<>();
                 checkExpr(expr);
                 evalRecord.add(expr);
                 String val = evals.get(expr);
@@ -1308,5 +1458,4 @@ public final class Josmans {
         }
     }
 
-    
 }

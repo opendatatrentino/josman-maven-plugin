@@ -104,6 +104,12 @@ public class JosmanProject {
     public static final String README_MD = "README.md";
     public static final String CHANGES_MD = "CHANGES.md";
     
+    /**
+     * @since 0.8.0
+     */
+    public static final String LICENSE_TXT = "LICENSE.txt";
+    
+    
     static final String JOSMAN_PROGRAM_LOGO_LINK = "#josman-program-logo-link";
     static final String JOSMAN_ORG_LOGO_LINK = "#josman-org-logo-link";
 
@@ -396,7 +402,7 @@ public class JosmanProject {
      */
     void copyMdAsHtml(
             InputStream sourceMdStream,
-            String relPath,
+            final String relPath,
             final SemVersion version,
             List<String> relpaths,
             Map<String, String> evals) {
@@ -1036,7 +1042,7 @@ public class JosmanProject {
             }
             
 
-            FileUtils.copyFile(new File(sourceRepoDir, "LICENSE.txt"), new File(pagesDir, "LICENSE.txt"));
+            FileUtils.copyFile(new File(sourceRepoDir, LICENSE_TXT), new File(pagesDir, "LICENSE.txt"));
 
         } catch (Exception ex) {
             throw new JosmanException("Error while copying files!", ex);

@@ -95,7 +95,7 @@ public class JosmansTest {
         
         assertEquals("some/Path", Josmans.htmlizePath("some/Path/"));
         assertEquals("/", Josmans.htmlizePath("\\"));
-
+                
         try {
             Josmans.htmlizePath("");
             Assert.fail();
@@ -105,6 +105,53 @@ public class JosmansTest {
         }
     }
 
+    /**
+     * @since 0.8.0
+     */
+    @Test
+    public void testHtmlizeRelativePathDocs(){
+        assertEquals("../c.html", Josmans.htmlizeRelativePath("docs/a/b.md", "../c.md"));
+        assertEquals("../c.html", Josmans.htmlizeRelativePath("docs/b.md", "../c.md"));
+        // shows we can escape before root, in this case no particular rewriting happens
+        assertEquals("../../c.html", Josmans.htmlizeRelativePath("docs/b.md", "../../c.md"));        
+        assertEquals("../../jackan/0.3/c.html", Josmans.htmlizeRelativePath("docs/b.md", "../../../../jackan/blob/branch-0.3/docs/c.md"));                       
+    }
+
+    /**
+     * @since 0.8.0
+     */
+    @Test
+    public void testHtmlizeRelativePathDocsDepthOne(){
+
+        assertEquals("../../jackan/0.3/c.html", Josmans.htmlizeRelativePath("docs/a/b.md", "../../../../../jackan/blob/branch-0.3/docs/c.md"));
+    }
+    
+    /**
+     * @since 0.8.0
+     */
+    @Test
+    public void testHtmlizeRelativePathRoot(){
+        assertEquals("../jackan/index.html", 
+                Josmans.htmlizeRelativePath("a.md", "../../../jackan/blob/branch-0.3/README.md"));
+        assertEquals("../jackan/LICENSE.txt", 
+                Josmans.htmlizeRelativePath("a.md", "../../../jackan/blob/branch-0.3/LICENSE.txt"));
+        
+        // if we point to stuff outside 'docs/', they are reported as is.
+        assertEquals("../../../jackan/blob/branch-0.3/a/b.html", 
+                Josmans.htmlizeRelativePath("a.md", "../../../jackan/blob/branch-0.3/a/b.md"));
+    }
+
+    /**
+     * @since 0.8.0
+     */
+    @Test
+    public void testHtmlizeRelativePathRootDepthOne(){
+
+        assertEquals("../../jackan/index.html", 
+            Josmans.htmlizeRelativePath("docs/b.md", "../../../../jackan/blob/branch-0.3/README.md"));
+    }
+    
+    
     @Test
     public void testTargetName() {
         try {
