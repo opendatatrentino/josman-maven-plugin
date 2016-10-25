@@ -5,7 +5,19 @@ RELEASE DOCS ARE ON THE <a href="http://opendatatrentino.github.io/josman/" targ
 
 ### Tests
 
-This page lists some tests with markdown to see how it is rendered.
+This page lists some tests with markdown to see how it is rendered. This page itself shows
+ pages can have multiple words names and they will be correctly rendered in the menu, provided filename is written without spaces like `TheTests.md`
+
+
+#### Relative links
+
+Relative links should work, shouldn't they?
+
+[../jackan](../jackan)  points to `/blob/jackan`
+
+[../../jackan](../../jackan) points to `/jackan`
+
+[../../../jackan/blob/branch-0.3/README.md](../../../jackan/blob/branch-0.3/README.md) points to `jackan` repository!!
 
 
 This is a custom image for this version: <img src="img/test-img.png">
