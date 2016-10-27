@@ -1,6 +1,8 @@
 package eu.trentorise.opendata.josman;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+
 import eu.trentorise.opendata.commons.TodUtils;
 import eu.trentorise.opendata.commons.validation.Preconditions;
 import eu.trentorise.opendata.josman.exceptions.ExprNotFoundException;
@@ -454,47 +456,54 @@ public final class Josmans {
     }
 
     /**
-     * Returns a new url friendly and normalized path.
+     * Returns a new url friendly and normalized relPath,
+     * which was found in a document at a given location
      *
+     * @param docPath
+     *            the path to the document where {@code relPath is found}
      * @param relPath
-     * @param path
      *            a path that may contain .md files and can have end like urls
-     *            like my/path/to/file.md?query#fragment
+     *            like my/path/to/file.md?query#fragment . By using parent '../' forms, 
+     *            it can also point to other repositories in the organization.
      *            
+     * 
      * @since 0.1.0
      */
-    public static String htmlizeRelativePath(String relPath, String path) {
-        if (!path.startsWith("../")) {
-            return htmlizePath(path);
+    public static String htmlizeRelativePath(String docPath, String relPath) {
+        checkNotNull(docPath);
+        checkNotNull(relPath);
+
+        if (!relPath.startsWith("../")) {
+            return htmlizePath(relPath);
         } else {
-                       
+
             URI rp;
             URI p;
             try {
-                rp = new URI(relPath);
+                rp = new URI(docPath);
                 LOG.fine("rp = " + rp.getPath());
-                p = new URI(path);
+                p = new URI(relPath);
                 LOG.fine("p = " + p.getPath());
             } catch (URISyntaxException e) {
                 throw new JosmanException(e);
             }
-                                   
-            int depth = 0; 
-            
-            if (isRootpath(rp.getPath())) {                
+
+            int depth = 0;
+
+            if (isRootpath(rp.getPath())) {
                 // todo
-                return htmlizeExternalPath(p.getPath(), depth);
+                return htmlizeRootedPath(p.getPath(), depth);
             } else {
                 rp = parentPath(rp);
             }
-                        
-            do  {
+
+            do {
                 if (isRootpath(rp.getPath())) {
-                    return htmlizeExternalPath(p.getPath(), depth);
+                    return htmlizeRootedPath(p.getPath(), depth);
                 } else {
                     rp = parentPath(rp);
                     depth += 1;
-                    
+
                     if (p.getPath()
                          .length() > 3) {
                         try {
@@ -504,33 +513,36 @@ public final class Josmans {
                             throw new JosmanException(e);
                         }
                     } else {
-                        return htmlizePath(path);
+                        return htmlizePath(relPath);
                     }
 
                 }
-            } while(p.getPath()
-                    .startsWith("../"));
-            
-            return htmlizePath(path);
+            } while (p.getPath()
+                      .startsWith("../"));
+
+            return htmlizePath(relPath);
         }
     }
 
-    
     /**
+     * If {@code path} is a file, returns its directory, otherwise returns the
+     * parent directory.
+     * 
      * @since 0.8.0
      */
-    private static URI parentPath(URI rp) {
-        checkNotNull(rp);
-        return rp.getPath().endsWith("/") ? rp.resolve("..") : rp.resolve(".");
+    private static URI parentPath(URI path) {
+        checkNotNull(path);
+        return path.getPath()
+                   .endsWith("/") ? path.resolve("..") : path.resolve(".");
     }
 
-
     /**
      * @since 0.8.0
      */
-    private static Pattern EXTERNAL_PATTERN = Pattern.compile("\\.\\./\\.\\./\\.\\./([^/]+)/blob/branch-([\\.|\\d]+)/?");
-    
-    
+    private static Pattern EXTERNAL_PATTERN = Pattern.compile(
+            "\\.\\./\\.\\./\\.\\./([^/]+)/blob/"   
+            + "((branch-)?([\\.|\\d]+)|master)/?");
+
     /**
      * @since 0.8.0
      */
@@ -539,60 +551,109 @@ public final class Josmans {
     /**
      * @since 0.8.0
      */
-    private static Pattern EXTERNAL_ROOT_FILES = Pattern.compile(EXTERNAL_PATTERN.toString() 
-            + "(/"+README_MD
-            +"|/"+JosmanProject.LICENSE_TXT
-            +"|/)");
-    
-    
+    private static Pattern EXTERNAL_ROOT_FILES = Pattern.compile(EXTERNAL_PATTERN.toString()
+            + "(/" + README_MD
+            + "|/" + JosmanProject.LICENSE_TXT
+            + "|/)");
+
     /**
+     * Htmlizes an external path.
+     * 
+     * @param rootedPath a path relative to the root of the document in which the reference was made.
+     *            
+     * @param depth
+     *            The depth of the document at which the reference was made.
+     *            
      * @since 0.8.0
      */
-    private static String htmlizeExternalPath(String rootedPath, int depth) {                   
+    // TODO this is cryptic
+    private static String htmlizeRootedPath(String rootedPath, int depth) {
+
+        checkArgument(depth >= 0, "Depth should be grater or equal than zero, found instead: " + depth);
+        checkNotNull(rootedPath);
         
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < depth; i++){
+        for (int i = 0; i < depth; i++) {
             sb.append("../");
         }
-        
+
         Matcher mDocs = EXTERNAL_DOCS_PATTERN.matcher(rootedPath);
         Matcher mRootFile = EXTERNAL_ROOT_FILES.matcher(rootedPath);
+        @Nullable
         Matcher m;
-                
-        if (mDocs.matches()){
+
+        if (mDocs.matches()) {
             m = mDocs;
-        } else if (mRootFile.matches()){
+        } else if (mRootFile.matches()) {
             m = mRootFile;
         } else {
             m = null;
         }
-        
-        if (m == null){
+
+        if (m == null) {
             return sb.toString() + htmlizePath(rootedPath);
-        } else {                   
+        } else {
+                                   
             /*
-                0: [0,35] ../../../jackan/blob/branch-0.3/bla
-                1: [9,15] jackan
-                2: [28,31] 0.3
-                3: [31,35] /bla
-                4: [32,35] bla             
+                0: [0,37] ../../../abc/blob/branch-0.3/docs/bla
+                1: [9,12] abc
+                2: [18,28] branch-0.3
+                3: [18,25] branch-
+                4: [25,28] 0.3
+                5: [33,37] /bla
+                6: [34,37] bla
+                
+                1: [9,15] abc
+                2: [21,27] master
+                3: [-1,-1] null
+                4: [-1,-1] null
+                5: [32,36] /bla
+                6: [33,36] bla
+                
+                1: [9,12] abc
+                2: [18,23] 0.3.2
+                3: [-1,-1] null
+                4: [18,23] 0.3.2
+                5: [28,32] /bla
+                6: [29,32] bla 
             */
             String otherRepoName = m.group(1);
-            String otherVersion = m.group(2);
-            String otherPath = m.group(3);
+            String otherVersionTag;
+            String tag = m.group(2);
+
+            @Nullable
+            String candidateVersion = m.group(4); 
+            
+            if (candidateVersion == null){                
+                otherVersionTag = "latest"; // we should actually get the correct version number from POM
+            } else {
+                
+                if (candidateVersion.split("\\.").length > 2){
+                    otherVersionTag = majorMinor(SemVersion.of(candidateVersion));
+                } else {
+                    otherVersionTag = candidateVersion;
+                }                                       
+            }            
+            String otherPath = m.group(5);
 
             sb.append("../");
             sb.append(otherRepoName);
-            if (mDocs.matches()){
-                sb.append("/" + otherVersion);
-            }            
+            if (mDocs.matches()) {
+                sb.append("/" + otherVersionTag);
+            }
             sb.append(htmlizePath(otherPath));
             return sb.toString();
         }
     }
 
     /**
-     * Returns a new url friendly and normalized path.
+     * Returns a new url friendly and normalized path. 
+     * 
+     * <p>
+     * <b>NOTE</b>: this function won't check if the
+     * path refers to other repositories in the organization. To handle this case,
+     * use {@link #htmlizeRelativePath(String, String)} instead  
+     *</p>
      *
      * @param path
      *            a path that may contain .md files and can have end like urls
@@ -966,13 +1027,13 @@ public final class Josmans {
         boolean docsFolder = (relPath.equals(DOCS_FOLDER)
                 || relPath.startsWith(DOCS_FOLDER + "/")
                 || relPath.startsWith(DOCS_FOLDER + "\\"));
-        if (docsFolder){
+        if (docsFolder) {
             return false;
         } else {
             // todo this should probably raise an exception!
-            if (relPath.length() > 1 && relPath.contains("/")){
-                LOG.warning("Found a relPath which is not a root one nor in docs !! relPath is: " + relPath );
-            } 
+            if (relPath.length() > 1 && relPath.contains("/")) {
+                LOG.warning("Found a relPath which is not a root one nor in docs !! relPath is: " + relPath);
+            }
             return true;
         }
     }

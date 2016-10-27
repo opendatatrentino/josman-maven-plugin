@@ -38,6 +38,7 @@ public class JosmansTest {
     public TemporaryFolder folder = new TemporaryFolder();
 
     
+    
     @BeforeClass
     public static void beforeClass() {        
         
@@ -104,27 +105,40 @@ public class JosmansTest {
 
         }
     }
+    
+    
 
     /**
      * @since 0.8.0
      */
     @Test
     public void testHtmlizeRelativePathDocs(){
+        assertEquals("../c.html", Josmans.htmlizeRelativePath("/docs", "../c.md"));        
+        assertEquals("../c.html", Josmans.htmlizeRelativePath("docs", "../c.md"));
+        assertEquals("../c.html", Josmans.htmlizeRelativePath("docs/", "../c.md"));
         assertEquals("../c.html", Josmans.htmlizeRelativePath("docs/a/b.md", "../c.md"));
         assertEquals("../c.html", Josmans.htmlizeRelativePath("docs/b.md", "../c.md"));
         // shows we can escape before root, in this case no particular rewriting happens
         assertEquals("../../c.html", Josmans.htmlizeRelativePath("docs/b.md", "../../c.md"));        
-        assertEquals("../../jackan/0.3/c.html", Josmans.htmlizeRelativePath("docs/b.md", "../../../../jackan/blob/branch-0.3/docs/c.md"));                       
-    }
+        assertEquals("../../jackan/0.3/c.html", 
+                Josmans.htmlizeRelativePath("docs/b.md", "../../../../jackan/blob/branch-0.3/docs/c.md"));
 
-    /**
-     * @since 0.8.0
-     */
-    @Test
-    public void testHtmlizeRelativePathDocsDepthOne(){
+        assertEquals("",
+                "../../../jackan/0.3/c.html", 
+                Josmans.htmlizeRelativePath("docs/a/b.md", "../../../../../jackan/blob/branch-0.3/docs/c.md"));
 
-        assertEquals("../../jackan/0.3/c.html", Josmans.htmlizeRelativePath("docs/a/b.md", "../../../../../jackan/blob/branch-0.3/docs/c.md"));
+        
+        assertEquals(" 0.3.3 tag should become 0.3",
+                     "../../jackan/0.23/c.html", 
+                Josmans.htmlizeRelativePath("docs/b.md", "../../../../jackan/blob/0.3.3/docs/c.md"));
+        
+        assertEquals("'master' tag should become 'latest'", 
+                    "../../jackan/latest/c.html", 
+                Josmans.htmlizeRelativePath("docs/b.md", "../../../../jackan/blob/master/docs/c.md"));
+        
+        
     }
+      
     
     /**
      * @since 0.8.0
@@ -132,25 +146,26 @@ public class JosmansTest {
     @Test
     public void testHtmlizeRelativePathRoot(){
         assertEquals("../jackan/index.html", 
+                Josmans.htmlizeRelativePath("", "../../../jackan/blob/branch-0.3/README.md"));
+        assertEquals("../jackan/index.html", 
+                Josmans.htmlizeRelativePath("/", "../../../jackan/blob/branch-0.3/README.md"));
+        assertEquals("../jackan/index.html", 
                 Josmans.htmlizeRelativePath("a.md", "../../../jackan/blob/branch-0.3/README.md"));
         assertEquals("../jackan/LICENSE.txt", 
                 Josmans.htmlizeRelativePath("a.md", "../../../jackan/blob/branch-0.3/LICENSE.txt"));
-        
+         
+        assertEquals("../jackan/index.html", 
+                Josmans.htmlizeRelativePath("a.md", "../../../jackan/blob/master/README.md"));
+
         // if we point to stuff outside 'docs/', they are reported as is.
-        assertEquals("../../../jackan/blob/branch-0.3/a/b.html", 
-                Josmans.htmlizeRelativePath("a.md", "../../../jackan/blob/branch-0.3/a/b.md"));
-    }
+        assertEquals("../../../jackan/blob/master/a/b.html", 
+                Josmans.htmlizeRelativePath("a.md", "../../../jackan/blob/master/a/b.md"));
 
-    /**
-     * @since 0.8.0
-     */
-    @Test
-    public void testHtmlizeRelativePathRootDepthOne(){
-
+        
         assertEquals("../../jackan/index.html", 
-            Josmans.htmlizeRelativePath("docs/b.md", "../../../../jackan/blob/branch-0.3/README.md"));
-    }
-    
+                Josmans.htmlizeRelativePath("docs/b.md", "../../../../jackan/blob/branch-0.3/README.md"));
+        
+    }  
     
     @Test
     public void testTargetName() {
