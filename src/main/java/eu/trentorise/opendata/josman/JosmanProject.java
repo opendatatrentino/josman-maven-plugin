@@ -38,6 +38,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.SortedMap;
@@ -498,6 +500,13 @@ public class JosmanProject {
                          @Override
                          public boolean onNode(Jerry arg0, int arg1) {
                              String href = arg0.attr("href");
+                             URI uri;
+                             try {
+                                 uri = new URI(href);
+                             } catch (URISyntaxException e) {
+                                 throw new JosmanException("Invalid path!", e);
+                             }
+
                              if (href.startsWith(prependedPath + "src")) {
                                  arg0.attr("href",
                                          href.replace(prependedPath + "src",
@@ -505,8 +514,10 @@ public class JosmanProject {
                                                          mvnPrj.getArtifactId(), version) + "/src"));
                                  return true;
                              }
-                             if (href.endsWith(".md")) {
-                                 arg0.attr("href", Josmans.htmlizePath(href));
+                             
+                                                                                                                  
+                             if (uri.getPath().endsWith(".md") && Josmans.isUriWithinOrg(relPath, href)) {
+                                 arg0.attr("href", Josmans.htmlizeRelativePath(relPath, href));
                                  return true;
                              }
 

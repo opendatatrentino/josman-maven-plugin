@@ -463,7 +463,7 @@ public final class Josmans {
      *            the path to the document where {@code relPath is found}
      * @param relPath
      *            a path that may contain .md files and can have end like urls
-     *            like my/path/to/file.md?query#fragment . By using parent '../' forms, 
+     *            like my/path/to/file.md?query#fragment . By using relative parent '../' forms, 
      *            it can also point to other repositories in the organization.
      *            
      * 
@@ -1021,6 +1021,7 @@ public final class Josmans {
      * @param relPath
      *            the website path, i.e. README.md or docs/CHANGES.md or
      *            docs\CHANGES.md
+     * @since 0.8.0
      */
     static boolean isRootpath(String relPath) {
         checkNotNull(relPath);
@@ -1032,12 +1033,13 @@ public final class Josmans {
         } else {
             // todo this should probably raise an exception!
             if (relPath.length() > 1 && relPath.contains("/")) {
-                LOG.warning("Found a relPath which is not a root one nor in docs !! relPath is: " + relPath);
+                LOG.warning("Found a relPath which isn't a root one, nor under 'docs/' !! relPath is: " + relPath);
             }
             return true;
         }
     }
-
+    
+    
     /**
      * Returns a string representation of the provided git file mode
      */
@@ -1519,4 +1521,72 @@ public final class Josmans {
         }
     }
 
+    /**
+     * @since 0.8.0
+     */
+    public static boolean isUriWithinOrg(String orgName, String relPath, URI href) {
+        if (href.isAbsolute()){
+           String orgPath = href.getScheme() + "://" + href.getAuthority() +"/" + orgName ;
+           return href.toString().startsWith(orgPath);           
+        } else {
+            
+           String rootedPath = rootedPath(relPath, href.toString());
+           
+           return !rootedPath.startsWith("../../../../")
+                   && rootedPath.startsWith("../../../"); 
+        }
+    }
+
+    /**
+     * @since 0.8.0
+     */
+    public static String rootedPath(String docPath, String relPath){
+        checkNotNull(docPath);
+        checkNotNull(relPath);
+
+        if (!relPath.startsWith("../")) {
+            return relPath;
+        } else {
+
+            URI rp;
+            URI p;
+            try {
+                rp = new URI(docPath);
+                p = new URI(relPath);
+            } catch (URISyntaxException e) {
+                throw new JosmanException(e);
+            }
+
+            int depth = 0;
+           
+
+            do {                
+                if ("".equals(parentPath(rp))) {
+                    return p.getPath();
+                } else {
+                    rp = parentPath(rp);
+                    depth += 1;
+
+                    if (p.getPath()
+                         .length() > 3) {
+                        try {
+                            p = new URI(p.getPath()
+                                         .substring(3));
+                        } catch (URISyntaxException e) {
+                            throw new JosmanException(e);
+                        }
+
+                    } else {
+                        return relPath;
+                    }
+
+                }
+            } while (p.getPath()
+                      .startsWith("../"));
+
+            return p.toString();
+        }
+        
+    }
+    
 }

@@ -384,4 +384,18 @@ public class JosmansTest {
         
     }
 
+    /**
+     * @since 0.8.0
+     */
+    @Test
+    public void testRootedPath(){
+        assertEquals("docs/b", Josmans.rootedPath("a/", "docs/b"));
+        
+        assertEquals("b", Josmans.rootedPath("docs/", "../b"));
+        assertEquals("b", Josmans.rootedPath("docs/a/", "../../b"));
+        assertEquals("../b", Josmans.rootedPath("docs/a/", "../../../b"));
+        assertEquals("../../a", Josmans.rootedPath("README.md", "../../a"));
+        assertEquals("", Josmans.rootedPath("README.md", ""));        
+    }
+    
 }
