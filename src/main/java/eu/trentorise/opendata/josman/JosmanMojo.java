@@ -59,7 +59,8 @@ public abstract class JosmanMojo extends AbstractMojo {
      */
     @Parameter(property = "site.snapshot", defaultValue = "false")
     private String snapshot;
-
+    
+    
     protected JosmanMojo(String messagePrefix) {
         checkNotEmpty(messagePrefix, "Invalid message prefix!");
         this.messagePrefix = messagePrefix;
@@ -114,7 +115,8 @@ public abstract class JosmanMojo extends AbstractMojo {
         getLog().info("");
         info("repo name:         " + repoName);
         info("repo title:        " + repoTitle);
-        info("repo organization: " + Josmans.organization(getProject().getUrl()));
+        info("organization repo: " + Josmans.organization(getProject().getUrl()));
+        info("organization site: " + getProject().getOrganization().getName() + "   " + getProject().getOrganization().getUrl());
         getLog().info("");
 
         boolean isSnapshot;
