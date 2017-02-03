@@ -177,8 +177,15 @@ table, th, td {
 
 #josman-program-logo {
     padding:10px; 
-    width:80px; 
-    height:80px                
+    max-width:100px; 
+    max-height:80px;                
+}
+
+#josman-org-logo {
+	float:right; 
+	padding:10px; 
+	max-width:130px;
+	max-height:80px;
 }
 
 .josman-image-link {
