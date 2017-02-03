@@ -216,6 +216,7 @@ public class JosmanProject {
         } else {
             this.sourceRepoDir = new File(sourceRepoDirPath);
         }
+        
         this.snapshotMode = snapshotMode;
         this.pagesDir = new File(pagesDirPath);
         checkArgument(!sourceRepoDir.getAbsolutePath()
@@ -577,8 +578,10 @@ public class JosmanProject {
         if (orgLogo.exists()) {
             skeleton.$("#josman-org-logo")
                     .attr("src", prependedPath + "img/" + orgLogoName(mvnPrj.getArtifactId()));
+            
             skeleton.$(JOSMAN_ORG_LOGO_LINK)
-                    .attr("href", prependedPath + "index.html");
+                    .attr("href", mvnPrj.getOrganization().getUrl())
+                    .attr("title", mvnPrj.getOrganization().getName());
         } else {
             LOG.warning("Couldn't find organization logo in " + orgLogo.getAbsolutePath());
             skeleton.$(JOSMAN_ORG_LOGO_LINK)
