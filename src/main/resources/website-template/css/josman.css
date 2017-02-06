@@ -205,12 +205,17 @@ pre {
 }
 
 pre > code {
-	background-color: #F7F9F2;
+	background-color: #F7F9F2 !important;
 }
 
 code {
-    background-color: ##ffe0a5;
-    font-size : 15px; 
+    background-color: #fff0d2 !important;
+    font-size : 15px;
+    padding-left: 3px;
+    padding-right: 3px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    border-radius: 4px;
 }
  
 
