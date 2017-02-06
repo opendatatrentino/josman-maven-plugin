@@ -204,8 +204,12 @@ pre {
     
 }
 
+pre > code {
+	background-color: #F7F9F2;
+}
+
 code {
-    background-color: #F7F9F2;
+    background-color: ##ffe0a5;
     font-size : 15px; 
 }
  
