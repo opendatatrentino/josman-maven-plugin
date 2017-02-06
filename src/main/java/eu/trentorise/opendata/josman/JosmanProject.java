@@ -1138,7 +1138,7 @@ public class JosmanProject {
                 }
             }
 
-        LOG.log(Level.INFO, "\n\nSite is now browsable at {0}\n\n", pagesDir.getAbsolutePath());
+        LOG.log(Level.INFO, "\n\nYou can now browse the website at {0}/index.html\n\n", pagesDir.getAbsolutePath());
     }
 
     /**
