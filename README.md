@@ -3,6 +3,11 @@ WARNING: THIS IS ONLY A TEMPLATE FOR THE DOCUMENTATION. <br/>
 RELEASE DOCS ARE ON THE <a href="http://opendatatrentino.github.io/josman-maven-plugin/" target="_blank">PROJECT WEBSITE</a>
 </p>
 
+<p class="josman-to-strip" align="center">
+<img alt="Josman Maven Plugin" src="docs/img/josman-maven-plugin-writing-300px.png" >
+<br/>
+</p>
+
 
 #### About
 
@@ -51,3 +56,9 @@ This way we
 #### Credits
 
 * David Leoni - DISI at University of Trento - david.leoni@unitn.it
+
+Made possible thanks to:
+
+&emsp;<a href="http://dati.trentino.it" target="_blank"> <img src="docs/img/tod-logo.png" width="80px" style="vertical-align:middle;"> </a> &emsp;&emsp;&emsp;&emsp;<a href="http://dati.trentino.it" target="_blank"> Open Data In Trentino Project </a>  
+
+&emsp;<a href="http://kidf.eu" target="_blank"> <img style="vertical-align:middle;" width="140px" src="docs/img/kidf-scientia.png"> </a> &emsp; <a href="http://kidf.eu" target="_blank"> Knowledge in Diversity Foundation </a> <br/>

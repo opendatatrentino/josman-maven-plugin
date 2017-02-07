@@ -1088,9 +1088,9 @@ public class JosmanProject {
 
         Josmans.copyDirFromResource(Josmans.class, "/website-template", pagesDir);       
 
-            File targetImgDir = new File(pagesDir, "img");
+        File targetImgDir = new File(pagesDir, "img");
 
-            try {
+        try {
             File programLogo = programLogo(sourceDocsDir(), mvnPrj.getArtifactId());
 
             if (programLogo.exists()) {
@@ -1099,16 +1099,16 @@ public class JosmanProject {
 
                 FileUtils.copyFile(programLogo, new File(targetImgDir, programLogoName(mvnPrj.getArtifactId())));
             }
-            } catch (Exception ex){
-                if (snapshotMode){
-                    LOG.severe("COULDN'T COPY THE PROGRAM LOGO!");
-                    LOG.log(Level.FINE,"Exception was: ", ex);
-                } else {
-                    throw new JosmanException("Error while copying files!", ex);
-                }                
-            }
+        } catch (Exception ex){
+            if (snapshotMode){
+                LOG.severe("COULDN'T COPY THE PROGRAM LOGO!");
+                LOG.log(Level.FINE,"Exception was: ", ex);
+            } else {
+                throw new JosmanException("Error while copying files!", ex);
+            }                
+        }
 
-            try {
+        try {
             File orgLogo = orgLogo(sourceDocsDir(), mvnPrj.getArtifactId());
 
             if (orgLogo.exists()) {
@@ -1117,26 +1117,36 @@ public class JosmanProject {
 
                 FileUtils.copyFile(orgLogo, new File(targetImgDir, orgLogoName(mvnPrj.getArtifactId())));
             }
-            } catch (Exception ex){
-                if (snapshotMode){
-                    LOG.severe("COULDN'T COPY THE organization logo!");
-                    LOG.log(Level.FINE,"Exception was: ", ex);
-                } else {
-                    throw new JosmanException("Error while copying files!", ex);
-                }                
+        } catch (Exception ex){
+            if (snapshotMode){
+                LOG.severe("COULDN'T COPY THE organization logo!");
+                LOG.log(Level.FINE,"Exception was: ", ex);
+            } else {
+                throw new JosmanException("Error while copying files!", ex);
+            }                
+        }
+        try {
+            FileUtils.copyDirectory(new File(sourceDocsDir(), "img/"), targetImgDir);
+        } catch (Exception ex){
+            if (snapshotMode){
+                LOG.severe("COULDN'T COPY docs/img DIRECTORY!");
+                LOG.log(Level.FINE,"Exception was: ", ex);
+            } else {
+                throw new JosmanException("Error while copying images!", ex);
             }
-
-            try {
+        }
+        
+        try { // copy all other images
             FileUtils.copyFile(new File(sourceRepoDir, "LICENSE.txt"), new File(pagesDir, "LICENSE.txt"));
 
-            } catch (Exception ex) {
-                if (snapshotMode){
-                    LOG.severe("COULDN'T COPY THE LICENCE.txt FILE!");
-                    LOG.log(Level.FINE,"Exception was: ", ex);
-                } else {
-                    throw new JosmanException("Error while copying files!", ex);
-                }
+        } catch (Exception ex) {
+            if (snapshotMode){
+                LOG.severe("COULDN'T COPY THE LICENCE.txt FILE!");
+                LOG.log(Level.FINE,"Exception was: ", ex);
+            } else {
+                throw new JosmanException("Error while copying files!", ex);
             }
+        }
 
         LOG.log(Level.INFO, "\n\nYou can now browse the website at {0}/index.html\n\n", pagesDir.getAbsolutePath());
     }
