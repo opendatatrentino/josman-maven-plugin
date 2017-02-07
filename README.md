@@ -58,7 +58,6 @@ This way we
 * David Leoni - DISI at University of Trento - david.leoni@unitn.it
 
 Made with the contribution of:
+&emsp;<a href="http://dati.trentino.it" target="_blank"> <img src="docs/img/tod-logo.png" width="80px" style="vertical-align:middle;"> </a> &emsp;&emsp;&emsp;&emsp;<a href="http://dati.trentino.it" target="_blank"> Open Data In Trentino Project </a>  
 
-<a href="http://dati.trentino.it" target="_blank"> <img src="docs/img/tod-logo.png" width="80px" style="vertical-align:middle; width:80px;"> </a> <a href="http://dati.trentino.it" target="_blank"> Open Data In Trentino Project </a> <br/>
-
-<a href="http://kidf.eu" target="_blank"> <img style="vertical-align:middle; width:140px;paddin" src="docs/img/kidf-scientia.png"> </a> <a href="http://kidf.eu" target="_blank"> Knowledge in Diversity Foundation </a> <br/>
+&emsp;<a href="http://kidf.eu" target="_blank"> <img style="vertical-align:middle;" width="140px" src="docs/img/kidf-scientia.png"> </a> &emsp; <a href="http://kidf.eu" target="_blank"> Knowledge in Diversity Foundation </a> <br/>
