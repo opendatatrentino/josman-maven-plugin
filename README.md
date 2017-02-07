@@ -57,7 +57,7 @@ This way we
 
 * David Leoni - DISI at University of Trento - david.leoni@unitn.it
 
-Made with the contribution of:
+Made possible thanks to:
 
 &emsp;<a href="http://dati.trentino.it" target="_blank"> <img src="docs/img/tod-logo.png" width="80px" style="vertical-align:middle;"> </a> &emsp;&emsp;&emsp;&emsp;<a href="http://dati.trentino.it" target="_blank"> Open Data In Trentino Project </a>  
 

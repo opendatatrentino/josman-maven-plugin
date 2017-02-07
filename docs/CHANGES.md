@@ -12,11 +12,28 @@ http://opendatatrentino.github.io/josman-maven-plugin
 
 todo date
 
+Major changes: 
+
 - merged Josman project into this one.
 - implemented `$'eval{EXPR}` and `$'evalNow{EXPR}` command
-- added variables  ` $'{project.version}, $'{josman.majorMinorVersion}, $'{josman.repoRelease} `
-- deprecated `#` variables 
+- more resilient to missing elements in snapshot mode
+- Maven variables are now injected
 
+Other changes: 
+
+- made organization logo customizable
+- switched owner to KidF, added credits
+- fixed tables not being rendered
+- not fetching tags in snapshot mode
+- now copying all images
+- deprecated `#` variables
+- added variables  ` $'{project.version}, $'{josman.majorMinorVersion}, $'{josman.repoRelease} `
+- improved logo
+- better coloring for code
+- fixed hashtags links not correctly generated
+- removed external links icons, put 'Github' instead of 'Repo'
+
+All closed issues: https://github.com/opendatatrentino/josman-maven-plugin/milestone/1?closed=1
 
 ### 0.7.0
 - using tod-super-pom 1.3.0
