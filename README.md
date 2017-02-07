@@ -4,7 +4,7 @@ RELEASE DOCS ARE ON THE <a href="http://opendatatrentino.github.io/josman-maven-
 </p>
 
 <p class="josman-to-strip" align="center">
-<img alt="Josman Maven Plugin" src="docs/img/josman-maven-plugin-writing-500px.png" >
+<img alt="Josman Maven Plugin" src="docs/img/josman-maven-plugin-writing-300px.png" >
 <br/>
 </p>
 
