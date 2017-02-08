@@ -218,12 +218,12 @@
 			<groupId>eu.trentorise.opendata</groupId>
 			<artifactId>tod-commons</artifactId>
 		</dependency>
-
+	
 		<dependency>
-			<groupId>org.pegdown</groupId>
-			<artifactId>pegdown</artifactId>
-			<version>1.6.0</version>
-		</dependency>
+		    <groupId>com.vladsch.flexmark</groupId>
+		    <artifactId>flexmark-profile-pegdown</artifactId>
+		    <version>0.13.3</version>
+		</dependency>		
 
 		<dependency>
 		    <groupId>org.apache.commons</groupId>
