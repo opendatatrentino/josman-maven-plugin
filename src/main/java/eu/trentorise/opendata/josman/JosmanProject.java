@@ -57,8 +57,12 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.parboiled.common.ImmutableList;
-import org.pegdown.Parser;
-import org.pegdown.PegDownProcessor;
+
+import com.vladsch.flexmark.html.HtmlRenderer;
+import com.vladsch.flexmark.parser.Parser;
+import com.vladsch.flexmark.profiles.pegdown.Extensions;
+import com.vladsch.flexmark.profiles.pegdown.PegdownOptionsAdapter;
+import com.vladsch.flexmark.util.options.DataHolder;
 
 /**
  * Represents a Josman project, holding information about maven and git
@@ -124,8 +128,10 @@ public class JosmanProject {
     @Nullable
     private ImmutableList<RepositoryTag> repoTags;
 
-    private PegDownProcessor pegDownProcessor;
+    private Parser markdownParser;
 
+    private HtmlRenderer markdownRenderer;
+    
     /**
      * @throws JosmanIoException
      * 
@@ -178,6 +184,23 @@ public class JosmanProject {
     }
 
     /**
+     * @since 0.8.0
+     */
+    private static final DataHolder MARKDOWN_OPTIONS = PegdownOptionsAdapter.flexmarkOptions(
+            Extensions.QUOTES
+            | Extensions.HARDWRAPS
+            | Extensions.AUTOLINKS
+            | Extensions.TABLES
+            | Extensions.FENCED_CODE_BLOCKS
+            | Extensions.WIKILINKS
+            | Extensions.STRIKETHROUGH // not supported in netbeans flow
+                                   // 2.0 yet
+            | Extensions.ANCHORLINKS // not supported in netbeans flow
+                                 // 2.0 yet
+    );
+    
+    
+    /**
      *
      * @param snapshotMode
      *            if true the website generator will only process the
@@ -224,18 +247,11 @@ public class JosmanProject {
         checkArgument(!sourceRepoDir.getAbsolutePath()
                                     .equals(pagesDir.getAbsolutePath()),
                 "Source folder and target folder coincide! They are " + sourceRepoDir.getAbsolutePath());
-        this.pegDownProcessor = new PegDownProcessor(
-                Parser.QUOTES
-                        | Parser.HARDWRAPS
-                        | Parser.AUTOLINKS
-                        | Parser.TABLES
-                        | Parser.FENCED_CODE_BLOCKS
-                        | Parser.WIKILINKS
-                        | Parser.STRIKETHROUGH // not supported in netbeans flow
-                                               // 2.0 yet
-                        | Parser.ANCHORLINKS // not supported in netbeans flow
-                                             // 2.0 yet
-        );
+        
+        
+        
+        this.markdownParser = Parser.builder(MARKDOWN_OPTIONS).build();        
+        this.markdownRenderer = HtmlRenderer.builder(MARKDOWN_OPTIONS).build();
 
         addClasspaths();
     }
@@ -524,7 +540,10 @@ public class JosmanProject {
         Jerry skeleton = Jerry.jerry(skeletonStringFixedPaths);
         skeleton.$("title")
                 .text(mvnPrj.getName());
-        String contentFromMdHtml = pegDownProcessor.markdownToHtml(filteredSourceMdString);
+        
+        com.vladsch.flexmark.ast.Node markdownNode = markdownParser.parse(filteredSourceMdString);
+
+        String contentFromMdHtml = markdownRenderer.render(markdownNode);
         Jerry contentFromMd = Jerry.jerry(contentFromMdHtml);
 
         contentFromMd.$("a")

@@ -74,7 +74,7 @@ To ignore some version, you can use `ignoredVersions`:
 
 ### Markdown
 
-Some examples can be found in [tests](tests.md) page. Keep in mind not all Github features are supported by <a href="https://github.com/sirthias/pegdown" target="_blank"> PegDown </a>, the library we use to convert to HTML.
+Some examples can be found in [tests](tests.md) page. Keep in mind not all Github features are supported by <a href="https://github.com/vsch/flexmark-java" target="_blank"> FlexMark </a>, the library we use to convert to HTML (previously [we used Pegdown](https://github.com/opendatatrentino/josman-maven-plugin/issues/28)).
 
 ### Variables
 
