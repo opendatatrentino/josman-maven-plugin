@@ -52,6 +52,16 @@ This way we
     * so if you have to patch something or just improve docs, just work in relative `branch-x.y` and then run Josman to publish it (even if it is not released).
     * if you need to add functionality, create new branch named `branch-x.y+1`
 
+#### Projects using Josman
+
+* [Jackan](https://github.com/opendatatrentino/jackan): Ckan Java client
+* [TraceProv](https://github.com/opendatatrentino/traceprov): Library to track provenance
+* [SemText](https://github.com/opendatatrentino/semtext): Semantic text model
+* [Diversicon Core](https://github.com/diversicon-kb/diversicon-core): Diversicon Knowledge Base
+* [Diversicon Model](https://github.com/diversicon-kb/diversicon-model): Diversicon Java model
+* [DivMaker](https://github.com/diversicon-kb/divmaker): Diversicon LMF generator
+* [DiverCLI](https://github.com/diversicon-kb/divercli): Diversicon command line client 
+* [Diversicon Wordnet 3.1](https://github.com/diversicon-kb/diversicon-wordnet-3.1): Wordnet 3.1 LMF packaged as Maven artifact.
 
 #### Credits
 
