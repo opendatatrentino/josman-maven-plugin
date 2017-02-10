@@ -10,6 +10,8 @@ import eu.trentorise.opendata.josman.exceptions.JosmanNotFoundException;
 
 import static eu.trentorise.opendata.commons.validation.Preconditions.checkNotEmpty;
 import eu.trentorise.opendata.commons.SemVersion;
+
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
@@ -371,7 +373,7 @@ public class JosmanProject {
 
         checkNotNull(sourceStream, "Invalid source stream!");
         checkNotEmpty(relPath, "Invalid relative path!");
-        checkNotEmpty(relPaths, "Invalid relative paths!");
+        checkNotNull(relPaths, "Invalid relative paths!");
         checkNotNull(version);
 
         File targetFile = Josmans.targetFile(cfg.getPagesDir(), relPath, version);
@@ -431,7 +433,8 @@ public class JosmanProject {
 
         checkNotNull(version);
         checkNotEmpty(relPath, "Invalid relative path!");
-        checkNotEmpty(relpaths, "Invalid relative paths!");
+                
+        checkNotNull(relpaths, "Invalid relative paths!");
 
         final String prependedPath = Josmans.prependedPath(relPath);
 
@@ -442,19 +445,41 @@ public class JosmanProject {
                     + targetFile.getAbsolutePath());
         }
 
-        String sourceMdString;
+        String sourceMdString = null;
         try {
             StringWriter writer = new StringWriter();
             IOUtils.copy(sourceMdStream, writer, "UTF-8"); // todo fixed
                                                            // encoding...
             sourceMdString = writer.toString();
+                        
         } catch (Exception ex) {
-            throw new JosmanIoException(
-                    "Couldn't read source md stream! Target path is " + targetFile.getAbsolutePath(), ex);
+            String s = "Couldn't read source md stream! Target path is " + targetFile.getAbsolutePath();
+            if (cfg.isFailOnError()){
+                throw new JosmanIoException(s, ex); 
+            } else {
+                LOG.warning(s + "  Skipping it.");
+            }
+            
         }
 
-        Josmans.checkNotMeaningful(sourceMdString, "Invalid source md file: " + relPath);
-
+        
+        
+        
+        String s = "Invalid source md file: " + relPath;
+        try {
+            Josmans.checkNotMeaningful(sourceMdString, s);
+        } catch (Exception ex){                
+            if (cfg.isFailOnError()){
+                throw ex;
+            } else {
+                LOG.warning(s + "\nSkipping it and setting mock content.");
+                sourceMdString = "TODO CREATE FILE `" + relPath + "`";
+            }   
+        }        
+            
+        
+        
+        
         String filteredSourceMdString = sourceMdString
                                                         // '#' for legacy compat
                                                       .replaceAll("#\\{version}", version.toString())
@@ -820,16 +845,29 @@ public class JosmanProject {
     }
 
     private void buildIndex(SemVersion latestVersion, Map<String, String> evals) {
-        try {
+        
             File sourceMdFile = new File(cfg.getSourceRepoDir(), README_MD);
-            copyMdAsHtml(   new FileInputStream(sourceMdFile), 
-                            README_MD, 
-                            latestVersion, 
-                            ImmutableList.of(README_MD),
-                            evals);
-        } catch (FileNotFoundException ex) {
-            throw new JosmanException("Error while building index!", ex);
-        }
+            
+            InputStream is;
+            
+            try {
+                is = new FileInputStream(sourceMdFile);
+            } catch (Exception ex) {
+                String s = "COULDN'T READ " + README_MD; 
+                if (cfg.isFailOnError()){
+                    throw new JosmanException(s, ex);
+                } else {
+                    LOG.severe(s + " SKIPPING IT.");
+                    is = new ByteArrayInputStream( "".getBytes() );
+                }
+            }    
+            
+            copyMdAsHtml(is, 
+                    README_MD, 
+                    latestVersion, 
+                    ImmutableList.of(README_MD),
+                    evals);
+        
     }
 
     private File targetVersionDir(SemVersion semVersion) {
@@ -842,6 +880,21 @@ public class JosmanProject {
      */
     private File targetLatestDocsDir() {
         return new File(cfg.getPagesDir(), "latest");
+    }
+
+      
+
+    /**
+     * @since 0.8.0
+     */
+    private void reportMissingRequiredFile(String requiredRelpath) {
+        String s = "COULDN'T FIND REQUIRED FILE " + requiredRelpath;
+        if (cfg.isFailOnError()){
+            throw new JosmanException(s);
+        } else {
+            LOG.severe("\n\n ERROR:   ******  " + s + "    *******"
+                     + "\n\n          ******  SKIPPING IT. \n\n");
+        }
     }
 
     /**
@@ -861,7 +914,7 @@ public class JosmanProject {
         deleteOutputVersionDir(targetVersionDir, version.getMajor(), version.getMinor());
                
         
-        List<String> relPaths = new ArrayList<String>();
+        List<String> mdRelPaths = new ArrayList<String>();               
         File[] files = sourceDocsDir().listFiles();
         // If this pathname does not denote a directory, then listFiles()
         // returns null.
@@ -869,16 +922,18 @@ public class JosmanProject {
         for (File file : files) {
             if (file.isFile() && file.getName()
                                      .endsWith(".md")) {
-                relPaths.add(DOCS_FOLDER + "/" + file.getName());
+                String relPath = DOCS_FOLDER + "/" + file.getName();
+                mdRelPaths.add(relPath);                
             }
-        }
-
+        }      
+        
+        
         DirWalker dirWalker = new DirWalker(
                 sourceDocsDir(),
                 targetVersionDir,
                 this,
                 version,
-                relPaths,
+                mdRelPaths,
                 evals);
         dirWalker.process();
         
@@ -947,7 +1002,7 @@ public class JosmanProject {
             }
 
             String path;
-            List<String> fixedRelpaths;
+            
 
             if (relpaths.isEmpty()) {
                 LOG.log(Level.WARNING, "COULDN''T FIND ANY FILE IN " + DOCS_FOLDER
@@ -957,6 +1012,15 @@ public class JosmanProject {
                 path = DOCS_FOLDER;
             }
 
+            for (String requiredRelpath : Josmans.REQUIRED_DOCS){
+                
+                if (requiredRelpath.startsWith(DOCS_FOLDER) 
+                        && !relpaths.contains(requiredRelpath)){
+                    reportMissingRequiredFile(requiredRelpath);
+                }                           
+            }
+            
+            
             TreeWalk treeWalk = makeGitDocsWalk(tree, path);
             while (treeWalk.next()) {
 
@@ -1181,6 +1245,15 @@ public class JosmanProject {
                 curEvals = Collections.EMPTY_MAP;
             }           
             
+            for (String requiredRelpath : Josmans.REQUIRED_DOCS){
+                
+                if (!new File(cfg.getSourceRepoDir(), requiredRelpath).exists()){
+                    reportMissingRequiredFile(requiredRelpath);
+                }
+                           
+            }
+
+            
             try {
                 buildIndex(snapVer, curEvals);
                 processDocsDir(snapVer, curEvals);
@@ -1298,7 +1371,7 @@ public class JosmanProject {
     private Jerry makeSidebar(String contentFromMdHtml, String currentRelPath, List<String> relpaths) {
         checkNotNull(contentFromMdHtml);
         checkNotEmpty(currentRelPath, "Invalid current rel path!");
-        checkNotEmpty(relpaths, "Invalid list of relpaths!");
+        checkNotNull(relpaths, "Invalid list of relpaths!");
 
         Jerry html = Jerry.jerry(contentFromMdHtml);
 
