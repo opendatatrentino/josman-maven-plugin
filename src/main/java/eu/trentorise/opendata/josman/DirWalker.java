@@ -59,13 +59,12 @@ public class DirWalker extends DirectoryWalker {
         }
         checkNotNull(josman);
         checkNotNull(version);
+        
         checkNotNull(relPaths, "Invalid relative paths!");
+        
         checkNotNull(evals, "Invalid evals!");
         
-        if (relPaths.isEmpty()){
-            throw new JosmanIoException("Docs directory is empty: " + sourceRoot.getAbsolutePath() 
-            + "\n Required files: " + Josmans.requiredDocs(""));
-        }
+        
         this.sourceRoot = sourceRoot;
         this.destinationRoot = destinationRoot;
         this.project = josman;

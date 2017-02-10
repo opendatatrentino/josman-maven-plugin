@@ -72,7 +72,7 @@ public final class Josmans {
     /**
      * @since 0.8.0
      */
-    public static final String[] REQUIRED_DOCS = new String[] { "LICENSE.txt", "README.md", "docs/README.md" };
+    public static final String[] REQUIRED_DOCS = new String[] { "LICENSE.txt", "README.md", DOCS_FOLDER + "/README.md" };
 
     
     

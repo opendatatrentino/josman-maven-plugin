@@ -371,7 +371,7 @@ public class JosmanProject {
 
         checkNotNull(sourceStream, "Invalid source stream!");
         checkNotEmpty(relPath, "Invalid relative path!");
-        checkNotEmpty(relPaths, "Invalid relative paths!");
+        checkNotNull(relPaths, "Invalid relative paths!");
         checkNotNull(version);
 
         File targetFile = Josmans.targetFile(cfg.getPagesDir(), relPath, version);
@@ -431,7 +431,8 @@ public class JosmanProject {
 
         checkNotNull(version);
         checkNotEmpty(relPath, "Invalid relative path!");
-        checkNotEmpty(relpaths, "Invalid relative paths!");
+                
+        checkNotNull(relpaths, "Invalid relative paths!");
 
         final String prependedPath = Josmans.prependedPath(relPath);
 
@@ -844,6 +845,21 @@ public class JosmanProject {
         return new File(cfg.getPagesDir(), "latest");
     }
 
+      
+
+    /**
+     * @since 0.8.0
+     */
+    private void reportMissingRequiredFile(String requiredRelpath) {
+        String s = "COULDN'T FIND REQUIRED FILE " + requiredRelpath;
+        if (cfg.isFailOnError()){
+            throw new JosmanException(s);
+        } else {
+            LOG.severe("\n\n ERROR:   ******  " + s + "    *******"
+                     + "\n\n          ******  SKIPPING IT. \n\n");
+        }
+    }
+
     /**
      * Processes a directory 'docs' that holds documentation for a given version
      * of the software
@@ -861,7 +877,7 @@ public class JosmanProject {
         deleteOutputVersionDir(targetVersionDir, version.getMajor(), version.getMinor());
                
         
-        List<String> relPaths = new ArrayList<String>();
+        List<String> mdRelPaths = new ArrayList<String>();               
         File[] files = sourceDocsDir().listFiles();
         // If this pathname does not denote a directory, then listFiles()
         // returns null.
@@ -869,16 +885,18 @@ public class JosmanProject {
         for (File file : files) {
             if (file.isFile() && file.getName()
                                      .endsWith(".md")) {
-                relPaths.add(DOCS_FOLDER + "/" + file.getName());
+                String relPath = DOCS_FOLDER + "/" + file.getName();
+                mdRelPaths.add(relPath);                
             }
-        }
-
+        }      
+        
+        
         DirWalker dirWalker = new DirWalker(
                 sourceDocsDir(),
                 targetVersionDir,
                 this,
                 version,
-                relPaths,
+                mdRelPaths,
                 evals);
         dirWalker.process();
         
@@ -947,7 +965,7 @@ public class JosmanProject {
             }
 
             String path;
-            List<String> fixedRelpaths;
+            
 
             if (relpaths.isEmpty()) {
                 LOG.log(Level.WARNING, "COULDN''T FIND ANY FILE IN " + DOCS_FOLDER
@@ -957,6 +975,15 @@ public class JosmanProject {
                 path = DOCS_FOLDER;
             }
 
+            for (String requiredRelpath : Josmans.REQUIRED_DOCS){
+                
+                if (requiredRelpath.startsWith(DOCS_FOLDER) 
+                        && !relpaths.contains(requiredRelpath)){
+                    reportMissingRequiredFile(requiredRelpath);
+                }                           
+            }
+            
+            
             TreeWalk treeWalk = makeGitDocsWalk(tree, path);
             while (treeWalk.next()) {
 
@@ -1181,6 +1208,15 @@ public class JosmanProject {
                 curEvals = Collections.EMPTY_MAP;
             }           
             
+            for (String requiredRelpath : Josmans.REQUIRED_DOCS){
+                
+                if (!new File(cfg.getSourceRepoDir(), requiredRelpath).exists()){
+                    reportMissingRequiredFile(requiredRelpath);
+                }
+                           
+            }
+
+            
             try {
                 buildIndex(snapVer, curEvals);
                 processDocsDir(snapVer, curEvals);
@@ -1298,7 +1334,7 @@ public class JosmanProject {
     private Jerry makeSidebar(String contentFromMdHtml, String currentRelPath, List<String> relpaths) {
         checkNotNull(contentFromMdHtml);
         checkNotEmpty(currentRelPath, "Invalid current rel path!");
-        checkNotEmpty(relpaths, "Invalid list of relpaths!");
+        checkNotNull(relpaths, "Invalid list of relpaths!");
 
         Jerry html = Jerry.jerry(contentFromMdHtml);
 
