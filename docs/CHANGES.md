@@ -12,22 +12,24 @@ http://opendatatrentino.github.io/josman-maven-plugin
 
 todo date
 
-BREAKING CHANGES:
+BREAKING:
 
-- now snapshot is created by default
-- deprecated `site.snapshot` in favor of `josman.site`
-- introduced `dev`,`ci`,`staging`, `release` modalities: 
+- now snapshot documentation is created by default
+- substituted `site.snapshot` with `josman.snapshot`
   See https://github.com/opendatatrentino/josman-maven-plugin/issues/29
 
-Major changes: 
 
+MAJOR: 
+
+- Introduced flags for fine tuning:  `josman.snapshot`, `josman.releases`, `josman.failOnError` and `josman.javadoc`
+- introduced modalities `dev`,`ci`,`staging`, `release`  
 - merged Josman project into this one.
 - implemented `$'eval{EXPR}` and `$'evalNow{EXPR}` command
 - more resilient to missing elements in snapshot mode
 - Maven variables are now injected
 
 
-Other changes: 
+OTHER: 
 
 - made organization logo customizable
 - switched owner to KidF, added credits
