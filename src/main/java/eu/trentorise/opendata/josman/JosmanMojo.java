@@ -91,8 +91,8 @@ public abstract class JosmanMojo extends AbstractMojo {
      * If true josman fails on warnings and errors. False by default.
      * 
      */
-    @Parameter(property = "josman.failOnErrors")
-    private String failOnErrors;    
+    @Parameter(property = "josman.failOnError")
+    private String failOnError;    
     
     
     /**
@@ -244,11 +244,11 @@ public abstract class JosmanMojo extends AbstractMojo {
         }
 
         try {
-            if (failOnErrors != null){
-                configb.setFailOnError(Boolean.parseBoolean(failOnErrors));               
+            if (failOnError != null){
+                configb.setFailOnError(Boolean.parseBoolean(failOnError));               
             } 
         } catch (Exception ex) {
-            fatalError("Couldn't parse 'josman.failOnErrors' parameter, found string: " + failOnErrors, ex);
+            fatalError("Couldn't parse 'josman.failOnError' parameter, found string: " + failOnError, ex);
         }       
                        
         
