@@ -826,7 +826,8 @@ public class JosmanProject {
         File targetVersionDir = targetVersionDir(version);
 
         deleteOutputVersionDir(targetVersionDir, version.getMajor(), version.getMinor());
-
+               
+        
         List<String> relPaths = new ArrayList<String>();
         File[] files = sourceDocsDir().listFiles();
         // If this pathname does not denote a directory, then listFiles()
@@ -848,6 +849,9 @@ public class JosmanProject {
                 evals);
         dirWalker.process();
         
+        if (cfg.isJavadoc()){
+            copyJavadoc(version);    
+        }
     }
 
     /**
@@ -1055,112 +1059,10 @@ public class JosmanProject {
             throw new JosmanException("Error while deleting directory " + cfg.getPagesDir().getAbsolutePath(), ex);
         }
 
+        generateReleases();
         
-
-        if (cfg.isReleases()) {
-
-            LOG.log(Level.INFO, "Fetching {0}/{1} tags.",
-                    new Object[] { Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId() });
-
-            repoTags = Josmans.fetchTags(Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId());
-
-            if (repoTags.isEmpty() && !cfg.isSnapshot()) {
-                throw new JosmanNotFoundException("There are no tags at all in the repository!!");
-            }
-            SemVersion latestPublishedVersion = Josmans.latestVersion(mvnPrj.getArtifactId(), remainingTags());
-
-            LOG.log(Level.INFO, "Processing published version");
-            String curBranch = Josmans.readRepoCurrentBranch(cfg.getSourceRepoDir());
-
-            SortedMap<String, RepositoryTag> filteredTags = Josmans.versionTagsToProcess(mvnPrj.getArtifactId(),
-                    remainingTags(), cfg.getIgnoredVersions());
-
-            for (RepositoryTag tag : filteredTags.values()) {
-                LOG.log(Level.INFO, "Processing release tag {0}", tag.getName());
-                SemVersion version = Josmans.version(mvnPrj.getArtifactId(), tag.getName());
-                if (cfg.isJavadoc()){
-                    copyJavadoc(version); // before processGit so we can have the
-                                          // eval file ready                                                     
-                } else {
-                    LOG.info("Skipping Javadoc for version " + version);
-                }
-                
-                Map<String, String> evals;
-                File evalMapFile = new File(targetJavadocDir(version), RELATIVE_EVAL_FILEPATH);
-                if (evalMapFile.exists()) {
-                    evals = Josmans.loadEvalMap(evalMapFile);
-                } else {
-                    evals = Collections.EMPTY_MAP;
-                }
-                try {
-                    processGitDocsDir(version, evals);
-                } catch (ExprNotFoundException ex) {
-                    throw new ExprNotFoundException(
-                            "RELEASED VERSION " + version + " IS MISSING EVALUATION OF EXPRESSION: " + ex.getExpr()
-                            + " FOUND IN FILE: " + ex.getRelPath(),
-                            ex.getExpr(),
-                            ex.getRelPath(),
-                            ex);
-                }
-            }
-
-
-            if (!cfg.isSnapshot()){
-                File evalMap = new File(targetJavadocDir(latestPublishedVersion), RELATIVE_EVAL_FILEPATH);
-                Map<String, String> latestPublishedEvals;
-                if (evalMap.exists()) {
-                    latestPublishedEvals = Josmans.loadEvalMap(evalMap);
-                } else {
-                    LOG.info("Couldn't find eval map (if docs don't contain $eval it's not necessary).");
-                    latestPublishedEvals = Collections.EMPTY_MAP;
-                }
-                
-                try {
-                    buildIndex(latestPublishedVersion, latestPublishedEvals);
-                } catch (ExprNotFoundException ex) {
-                    throw new ExprNotFoundException("RELEASED VERSION " + latestPublishedVersion
-                            + " IS MISSING EVALUATION OF EXPRESSION: " + ex.getExpr()
-                            + " FOUND IN FILE " + ex.getRelPath(),
-                            ex.getExpr(),
-                            ex.getRelPath(),
-                            ex);
-                }                
-            }
-
-        }        
-        
-        if (cfg.isSnapshot()) {
-            SemVersion snapVer = snapshotVersion();
-
-            LOG.log(Level.INFO, "Processing local version");
-            File evalMap = new File(cfg.getSourceRepoDir(), "target/apidocs/" + RELATIVE_EVAL_FILEPATH);
-            @Nullable
-            Map<String, String> curEvals;
-            if (evalMap.exists()) {
-                curEvals = Josmans.loadEvalMap(evalMap);
-            } else {
-                LOG.info("Couldn't find evals map (to create it just run the tests): " + evalMap.getAbsolutePath());
-                curEvals = Collections.EMPTY_MAP;
-            }
-
-            if (cfg.isJavadoc()){
-                copyJavadoc(snapVer);    
-            }
-            
-            try {
-                buildIndex(snapVer, curEvals);
-                processDocsDir(snapVer, curEvals);
-            } catch (ExprNotFoundException ex) {
-                throw new ExprNotFoundException("SNAPSHOT VERSION IS MISSING EVALUATED EXPRESSION: "
-                        + ex.getExpr() + " FOUND IN FILE " + ex.getRelPath()+ "\n!!!!!!   MAYBE YOU FORGOT TO RUN   mvn josman:eval ? \n\n", ex.getExpr(), ex.getRelPath());
-            }
-            
-            createLatestDocsDirectory(snapVer);
-
-
-        }
-        
-        
+        generateSnapshot();
+                      
 
         Josmans.copyDirFromResource(Josmans.class, "/website-template", cfg.getPagesDir());       
 
@@ -1225,6 +1127,125 @@ public class JosmanProject {
         }
 
         LOG.log(Level.INFO, "\n\nYou can now browse the website at {0}/index.html\n\n", cfg.getPagesDir().getAbsolutePath());
+    }
+
+    /**
+     * @since 0.8.0
+     */
+    private void generateSnapshot() {
+        if (cfg.isSnapshot()) {
+            SemVersion snapVer = snapshotVersion();
+
+            LOG.log(Level.INFO, "Processing local version");
+            File evalMap = new File(cfg.getSourceRepoDir(), "target/apidocs/" + RELATIVE_EVAL_FILEPATH);
+            @Nullable
+            Map<String, String> curEvals;
+            if (evalMap.exists()) {
+                curEvals = Josmans.loadEvalMap(evalMap);
+            } else {
+                LOG.info("Couldn't find evals map (to create it just run the tests): " + evalMap.getAbsolutePath());
+                curEvals = Collections.EMPTY_MAP;
+            }           
+            
+            try {
+                buildIndex(snapVer, curEvals);
+                processDocsDir(snapVer, curEvals);
+            } catch (ExprNotFoundException ex) {
+                throw new ExprNotFoundException("SNAPSHOT VERSION IS MISSING EVALUATED EXPRESSION: "
+                        + ex.getExpr() + " FOUND IN FILE " + ex.getRelPath()+ "\n!!!!!!   MAYBE YOU FORGOT TO RUN   mvn josman:eval ? \n\n", ex.getExpr(), ex.getRelPath());
+            }
+            
+            createLatestDocsDirectory(snapVer);
+
+
+        }
+
+    }
+
+    /**
+     * @since 0.8.0
+     */
+    private void generateReleases() {
+        
+        if (cfg.isReleases()) {
+
+            LOG.log(Level.INFO, "Fetching {0}/{1} tags.",
+                    new Object[] { Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId() });
+
+            repoTags = Josmans.fetchTags(Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId());
+
+            if (cfg.isSnapshot()){
+                if (remainingTags().isEmpty()) {                    
+                    LOG.warning("No previous releases found.");
+                    return;
+                }                
+            } else {
+                if (repoTags.isEmpty()) {                    
+                    throw new JosmanNotFoundException("There are no tags at all in the repository!!");    
+                }                
+            }
+            
+            SemVersion latestPublishedVersion = Josmans.latestVersion(mvnPrj.getArtifactId(), remainingTags());
+
+            LOG.log(Level.INFO, "Processing published version");
+            
+
+            SortedMap<String, RepositoryTag> filteredTags = Josmans.versionTagsToProcess(mvnPrj.getArtifactId(),
+                    remainingTags(), cfg.getIgnoredVersions());
+
+            for (RepositoryTag tag : filteredTags.values()) {
+                LOG.log(Level.INFO, "Processing release tag {0}", tag.getName());
+                SemVersion version = Josmans.version(mvnPrj.getArtifactId(), tag.getName());
+                if (cfg.isJavadoc()){
+                    copyJavadoc(version); // before processGit so we can have the
+                                          // eval file ready                                                     
+                } else {
+                    LOG.info("Skipping Javadoc for version " + version);
+                }
+                
+                Map<String, String> evals;
+                File evalMapFile = new File(targetJavadocDir(version), RELATIVE_EVAL_FILEPATH);
+                if (evalMapFile.exists()) {
+                    evals = Josmans.loadEvalMap(evalMapFile);
+                } else {
+                    evals = Collections.EMPTY_MAP;
+                }
+                try {
+                    processGitDocsDir(version, evals);
+                } catch (ExprNotFoundException ex) {
+                    throw new ExprNotFoundException(
+                            "RELEASED VERSION " + version + " IS MISSING EVALUATION OF EXPRESSION: " + ex.getExpr()
+                            + " FOUND IN FILE: " + ex.getRelPath(),
+                            ex.getExpr(),
+                            ex.getRelPath(),
+                            ex);
+                }
+            }
+
+
+            if (!cfg.isSnapshot()){
+                File evalMap = new File(targetJavadocDir(latestPublishedVersion), RELATIVE_EVAL_FILEPATH);
+                Map<String, String> latestPublishedEvals;
+                if (evalMap.exists()) {
+                    latestPublishedEvals = Josmans.loadEvalMap(evalMap);
+                } else {
+                    LOG.info("Couldn't find eval map (if docs don't contain $eval it's not necessary).");
+                    latestPublishedEvals = Collections.EMPTY_MAP;
+                }
+                
+                try {
+                    buildIndex(latestPublishedVersion, latestPublishedEvals);
+                } catch (ExprNotFoundException ex) {
+                    throw new ExprNotFoundException("RELEASED VERSION " + latestPublishedVersion
+                            + " IS MISSING EVALUATION OF EXPRESSION: " + ex.getExpr()
+                            + " FOUND IN FILE " + ex.getRelPath(),
+                            ex.getExpr(),
+                            ex.getRelPath(),
+                            ex);
+                }                
+            }
+
+        }  
     }
 
     /**

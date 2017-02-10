@@ -132,8 +132,8 @@
 				<version>${project.version}</version>
 				<configuration>
 				<ignoredVersions>
-					 <ignoredVersion> 0.6.0</ignoredVersion> 
-					<!-- <ignoredVersion> 0.6.1</ignoredVersion>  -->
+					<!--  <ignoredVersion> 0.6.0</ignoredVersion> --> 
+					 <ignoredVersion> 0.6.1</ignoredVersion>  
 					
 				</ignoredVersions>
 				

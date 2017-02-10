@@ -298,6 +298,8 @@ public class JosmanConfig {
          * @since 0.8.0
          */
         private void check() {
+            checkArgument(config.snapshot || config.releases,
+                    "Found both 'snapshot' and 'releases' false ! At least one of them must be true!");
             checkArgument(!config.sourceRepoDir.getAbsolutePath()
                                                .equals(config.pagesDir.getAbsolutePath()),
                     "Source folder and target folder coincide! They are " + config.sourceRepoDir.getAbsolutePath());
