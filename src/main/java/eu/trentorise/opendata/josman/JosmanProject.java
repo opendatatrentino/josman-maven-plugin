@@ -10,6 +10,8 @@ import eu.trentorise.opendata.josman.exceptions.JosmanNotFoundException;
 
 import static eu.trentorise.opendata.commons.validation.Preconditions.checkNotEmpty;
 import eu.trentorise.opendata.commons.SemVersion;
+
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
@@ -443,19 +445,41 @@ public class JosmanProject {
                     + targetFile.getAbsolutePath());
         }
 
-        String sourceMdString;
+        String sourceMdString = null;
         try {
             StringWriter writer = new StringWriter();
             IOUtils.copy(sourceMdStream, writer, "UTF-8"); // todo fixed
                                                            // encoding...
             sourceMdString = writer.toString();
+                        
         } catch (Exception ex) {
-            throw new JosmanIoException(
-                    "Couldn't read source md stream! Target path is " + targetFile.getAbsolutePath(), ex);
+            String s = "Couldn't read source md stream! Target path is " + targetFile.getAbsolutePath();
+            if (cfg.isFailOnError()){
+                throw new JosmanIoException(s, ex); 
+            } else {
+                LOG.warning(s + "  Skipping it.");
+            }
+            
         }
 
-        Josmans.checkNotMeaningful(sourceMdString, "Invalid source md file: " + relPath);
-
+        
+        
+        
+        String s = "Invalid source md file: " + relPath;
+        try {
+            Josmans.checkNotMeaningful(sourceMdString, s);
+        } catch (Exception ex){                
+            if (cfg.isFailOnError()){
+                throw ex;
+            } else {
+                LOG.warning(s + "\nSkipping it and setting mock content.");
+                sourceMdString = "TODO CREATE FILE `" + relPath + "`";
+            }   
+        }        
+            
+        
+        
+        
         String filteredSourceMdString = sourceMdString
                                                         // '#' for legacy compat
                                                       .replaceAll("#\\{version}", version.toString())
@@ -821,16 +845,29 @@ public class JosmanProject {
     }
 
     private void buildIndex(SemVersion latestVersion, Map<String, String> evals) {
-        try {
+        
             File sourceMdFile = new File(cfg.getSourceRepoDir(), README_MD);
-            copyMdAsHtml(   new FileInputStream(sourceMdFile), 
-                            README_MD, 
-                            latestVersion, 
-                            ImmutableList.of(README_MD),
-                            evals);
-        } catch (FileNotFoundException ex) {
-            throw new JosmanException("Error while building index!", ex);
-        }
+            
+            InputStream is;
+            
+            try {
+                is = new FileInputStream(sourceMdFile);
+            } catch (Exception ex) {
+                String s = "COULDN'T READ " + README_MD; 
+                if (cfg.isFailOnError()){
+                    throw new JosmanException(s, ex);
+                } else {
+                    LOG.severe(s + " SKIPPING IT.");
+                    is = new ByteArrayInputStream( "".getBytes() );
+                }
+            }    
+            
+            copyMdAsHtml(is, 
+                    README_MD, 
+                    latestVersion, 
+                    ImmutableList.of(README_MD),
+                    evals);
+        
     }
 
     private File targetVersionDir(SemVersion semVersion) {

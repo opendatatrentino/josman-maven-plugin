@@ -521,7 +521,7 @@ public final class Josmans {
      *             on empty string
      */
     public static String checkNotMeaningful(@Nullable String string, @Nullable Object prependedErrorMessage) {
-        TodUtils.checkNotEmpty(string, prependedErrorMessage);
+        Preconditions.checkNotEmpty(string, prependedErrorMessage);
         for (int i = 0; i < string.length(); i++) {
             if (string.charAt(i) != '\n' && string.charAt(i) != '\t' && string.charAt(i) != ' ') {
                 return string;
