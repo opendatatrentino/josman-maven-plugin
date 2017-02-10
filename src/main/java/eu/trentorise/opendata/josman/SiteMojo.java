@@ -30,7 +30,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 @Mojo(name = "site", requiresDependencyResolution=ResolutionScope.TEST)
 public class SiteMojo extends JosmanMojo {
     
-    
+        
     public SiteMojo() {
         super("JOSMAN SITE");
     }

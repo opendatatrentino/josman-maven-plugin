@@ -55,7 +55,8 @@ import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
-import org.parboiled.common.ImmutableList;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Utilities for Josman

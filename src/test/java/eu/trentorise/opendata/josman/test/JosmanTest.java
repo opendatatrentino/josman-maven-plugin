@@ -22,6 +22,7 @@ import org.junit.rules.TemporaryFolder;
 
 import eu.trentorise.opendata.commons.SemVersion;
 import eu.trentorise.opendata.commons.TodConfig;
+import eu.trentorise.opendata.josman.JosmanConfig;
 import eu.trentorise.opendata.josman.JosmanProject;
 import eu.trentorise.opendata.josman.Josmans;
 
@@ -43,9 +44,7 @@ public class JosmanTest {
     public static void beforeClass() {                
         TodConfig.init(JosmanTest.class);
     }
-    
-    
-    
+           
     /**
      * 
      * 
@@ -58,14 +57,12 @@ public class JosmanTest {
         String sourceRepoDirPath = MINIMAL_REPO_PATH;
         String pagesDirPath = folder.newFolder("site")
                 .getAbsolutePath();
-        List<SemVersion> ignoredVersions;
-        boolean snapshotMode = true;
-
+               
         JosmanProject prj = new JosmanProject(mvnPrj,
-                sourceRepoDirPath,
-                pagesDirPath,
-                new ArrayList(),
-                snapshotMode);
+                JosmanConfig.builder()
+                .setSourceRepoDir(sourceRepoDirPath)
+                .setPagesDir(pagesDirPath)           
+                .build());
 
         prj.generateSite();
     }
@@ -142,14 +139,12 @@ public class JosmanTest {
         String sourceRepoDirPath = sourceRepo.getAbsolutePath();
         String pagesDirPath = folder.newFolder("site")
                 .getAbsolutePath();
-        List<SemVersion> ignoredVersions = new ArrayList<>();
-        boolean snapshotMode = true;
-
+               
         JosmanProject prj = new JosmanProject(mvnPrj,
-                sourceRepoDirPath,
-                pagesDirPath,
-                ignoredVersions,
-                snapshotMode);
+                JosmanConfig.builder()
+                .setSourceRepoDir(sourceRepoDirPath)
+                .setPagesDir(pagesDirPath)                                  
+                .build());
 
         prj.generateSite();
         
@@ -193,14 +188,14 @@ public class JosmanTest {
         String sourceRepoDirPath = sourceRepo.getAbsolutePath();
         String pagesDirPath = folder.newFolder("site")
                 .getAbsolutePath();
-        List<SemVersion> ignoredVersions = new ArrayList<>();
-        boolean snapshotMode = true;
+        
 
+        
         JosmanProject prj = new JosmanProject(mvnPrj,
-                sourceRepoDirPath,
-                pagesDirPath,
-                ignoredVersions,
-                snapshotMode);
+                JosmanConfig.builder()
+                .setSourceRepoDir(sourceRepoDirPath)
+                .setPagesDir(pagesDirPath)                 
+                .build());
 
         prj.generateSite();
         
@@ -253,15 +248,13 @@ public class JosmanTest {
                
         String sourceRepoDirPath = sourceRepo.getAbsolutePath();
         String pagesDirPath = folder.newFolder("site")
-                .getAbsolutePath();
-        List<SemVersion> ignoredVersions = new ArrayList<>();
-        boolean snapshotMode = true;
+                .getAbsolutePath();        
 
         JosmanProject prj = new JosmanProject(mvnPrj,
-                sourceRepoDirPath,
-                pagesDirPath,
-                ignoredVersions,
-                snapshotMode);
+                JosmanConfig.builder()
+                .setSourceRepoDir(sourceRepoDirPath)
+                .setPagesDir(pagesDirPath)                 
+                .build());
 
         prj.evalDocs();
         

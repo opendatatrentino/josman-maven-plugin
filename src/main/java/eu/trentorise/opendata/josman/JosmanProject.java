@@ -33,6 +33,7 @@ import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.model.Scm;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.eclipse.egit.github.core.RepositoryTag;
 import java.io.FileNotFoundException;
@@ -56,13 +57,15 @@ import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
-import org.parboiled.common.ImmutableList;
 
+import com.google.common.collect.ImmutableList;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.profiles.pegdown.Extensions;
 import com.vladsch.flexmark.profiles.pegdown.PegdownOptionsAdapter;
 import com.vladsch.flexmark.util.options.DataHolder;
+
+
 
 /**
  * Represents a Josman project, holding information about maven and git
@@ -114,10 +117,6 @@ public class JosmanProject {
     static final String JOSMAN_ORG_LOGO_LINK = "#josman-org-logo-link";
 
     private MavenProject mvnPrj;
-    private boolean snapshotMode;    
-    private File sourceRepoDir;
-    private File pagesDir;
-    private ImmutableList<SemVersion> ignoredVersions;
 
     private Repository repo;
 
@@ -131,6 +130,8 @@ public class JosmanProject {
     private Parser markdownParser;
 
     private HtmlRenderer markdownRenderer;
+    
+    private JosmanConfig cfg;
     
     /**
      * @throws JosmanIoException
@@ -198,25 +199,16 @@ public class JosmanProject {
             | Extensions.ANCHORLINKS // not supported in netbeans flow
                                  // 2.0 yet
     );
-    
-    
+        
     /**
      *
-     * @param snapshotMode
-     *            if true the website generator will only process the
-     *            current branch snapshot. Otherwise all released versions
-     *            except
-     *            {@code ignoredVersions} will be processed,
-     *
      * @throws JosmanException
+     * 
      * @since 0.8.0
      */
     public JosmanProject(
             MavenProject mvnPrj,
-            String sourceRepoDirPath,
-            String pagesDirPath,
-            List<SemVersion> ignoredVersions,
-            boolean snapshotMode) {
+            JosmanConfig josmanConfig) {
 
         checkNotNull(mvnPrj, "Invalid Maven project!");
         checkNotEmpty(mvnPrj.getUrl(), "Invalid url!");
@@ -229,25 +221,10 @@ public class JosmanProject {
                 "Invalid groupId: " + mvnPrj.getGroupId());
         checkNotEmpty(mvnPrj.getVersion(), "Invalid version!");
 
-        checkNotNull(sourceRepoDirPath, "Invalid repository source dir path!");
-        checkNotEmpty(pagesDirPath, "Invalid pages dir path!");
-        checkNotNull(ignoredVersions, "Invalid versions to ignore!");
-
+        checkNotNull(josmanConfig, "Invalid JosmanConfig !");
+                
         this.mvnPrj = mvnPrj;
-
-        this.ignoredVersions = ImmutableList.copyOf(ignoredVersions);
-        if (sourceRepoDirPath.isEmpty()) {
-            this.sourceRepoDir = new File("." + File.separator);
-        } else {
-            this.sourceRepoDir = new File(sourceRepoDirPath);
-        }
-        
-        this.snapshotMode = snapshotMode;
-        this.pagesDir = new File(pagesDirPath);
-        checkArgument(!sourceRepoDir.getAbsolutePath()
-                                    .equals(pagesDir.getAbsolutePath()),
-                "Source folder and target folder coincide! They are " + sourceRepoDir.getAbsolutePath());
-        
+        this.cfg = josmanConfig;             
         
         
         this.markdownParser = Parser.builder(MARKDOWN_OPTIONS).build();        
@@ -299,7 +276,7 @@ public class JosmanProject {
     }
 
     private File sourceDocsDir() {
-        return new File(sourceRepoDir, DOCS_FOLDER);
+        return new File(cfg.getSourceRepoDir(), DOCS_FOLDER);
     }
 
     private File targetJavadocDir(SemVersion version) {
@@ -307,15 +284,11 @@ public class JosmanProject {
     }
 
     private File sourceJavadocDir(SemVersion version) {
-        if (snapshotMode) {
 
             // NOTE: mvn javadoc:javadoc creates target/site/apidocs
             // and mvn javadoc:jar creates target/apidocs !!
 
-            return new File(sourceRepoDir, "target/apidocs");
-        } else {
-            throw new UnsupportedOperationException("todo non-local javadoc not supported yet");
-        }
+        return new File(cfg.getSourceRepoDir(), "target/apidocs");
     }
 
     static String programLogoName(String repoName) {
@@ -368,7 +341,7 @@ public class JosmanProject {
         checkNotEmpty(relPaths, "Invalid relative paths!");
         checkNotNull(version);
 
-        File targetFile = Josmans.targetFile(pagesDir, relPath, version);
+        File targetFile = Josmans.targetFile(cfg.getPagesDir(), relPath, version);
 
         if (targetFile.exists()) {
             throw new JosmanIoException("Target file already exists! "
@@ -429,7 +402,7 @@ public class JosmanProject {
 
         final String prependedPath = Josmans.prependedPath(relPath);
 
-        File targetFile = Josmans.targetFile(pagesDir, relPath, version);
+        File targetFile = Josmans.targetFile(cfg.getPagesDir(), relPath, version);
 
         if (targetFile.exists()) {
             throw new JosmanIoException("Trying to write md file to target that already exists!! Target is "
@@ -502,7 +475,7 @@ public class JosmanProject {
                 "project.scm.connection", scm.getConnection(),
                 "project.scm.developerConnection", scm.getDeveloperConnection(),
                 "project.scm.tag", scm.getTag(),
-                "project.scm.url", scm.getUrl(),                
+                "project.scm.url", scm.getUrl(),
                 "pom.artifactId", mvnPrj.getArtifactId(),                
                 "pom.groupId", mvnPrj.getGroupId(),
                 "pom.description", mvnPrj.getDescription(),
@@ -514,7 +487,7 @@ public class JosmanProject {
                     relPath,
                     Thread.currentThread()
                           .getContextClassLoader(),
-                           snapshotMode);
+                           !cfg.isFailOnError());
 
         String skeletonString;
         try {
@@ -665,10 +638,7 @@ public class JosmanProject {
         skeleton.$(".josman-version-tab-header")
                 .remove();
 
-        List<RepositoryTag> tags = new ArrayList<RepositoryTag>(
-                Josmans.versionTagsToProcess(mvnPrj.getArtifactId(), repoTags, ignoredVersions)
-                       .values());
-        Collections.reverse(tags);
+        List<RepositoryTag> tags = repoTagsDescendant();
 
         if (Josmans.isRootpath(relPath)) {
             skeleton.$("#josman-internal-sidebar")
@@ -684,29 +654,27 @@ public class JosmanProject {
         skeleton.$(".josman-to-strip")
                 .remove();
 
-        if (snapshotMode) {
-
-            if (tags.size() > 0) {
-                SemVersion ver = Josmans.version(mvnPrj.getArtifactId(), tags.get(0)
-                                                                             .getName());
-                if (version.getMajor() >= ver.getMajor()
-                        && version.getMinor() >= ver.getMinor()) {
-                    addVersionHeaderTag(skeleton, prependedPath, version, prependedPath.length() != 0);
-                }
-
-            } else {
-                addVersionHeaderTag(skeleton, prependedPath, version, prependedPath.length() != 0);
-            }
-
-        } else {
-
-            for (RepositoryTag tag : tags) {
+        
+        SemVersion snapVer = snapshotVersion();
+        
+                  
+                                                                      
+        if (cfg.isSnapshot()) {
+            addVersionHeaderTag(skeleton, prependedPath, snapVer,
+                                !Josmans.isRootpath(relPath)
+                                && version.equals(snapVer));
+        }            
+         
+        if (cfg.isReleases()) {
+            
+            for (RepositoryTag tag : remainingTags()) {
                 SemVersion ver = Josmans.version(mvnPrj.getArtifactId(), tag.getName());
                 addVersionHeaderTag(
                         skeleton,
                         prependedPath,
                         ver,
-                        !Josmans.isRootpath(relPath) && ver.equals(version));
+                        !Josmans.isRootpath(relPath) 
+                        && ver.equals(version));
             }
 
             Pattern p = Pattern.compile("todo", Pattern.CASE_INSENSITIVE);
@@ -738,6 +706,43 @@ public class JosmanProject {
     }
     
     /**
+     * Release tags - may not have the first one if in snapshot mode and 
+     * snapshot version overrides first tag of released ones. 
+     * 
+     * @since 0.8.0
+     */
+    private ImmutableList<RepositoryTag> remainingTags() {
+
+        ImmutableList<RepositoryTag> ret;
+        ImmutableList<RepositoryTag> tags = repoTagsDescendant();               
+        
+        if (cfg.isSnapshot() 
+            && snapshotReplacesFirstTag()){
+            
+            if (tags.size() > 1){
+                ret = ImmutableList.copyOf(tags.subList(1, tags.size()));
+            } else {
+                ret=  ImmutableList.of();
+            }
+        } else {
+            ret =  tags;
+        }
+                
+        return ret;
+    }
+
+    /**
+     * @since 0.8.0
+     */
+    private ImmutableList<RepositoryTag> repoTagsDescendant() {
+        ArrayList<RepositoryTag> ret = new ArrayList<RepositoryTag>(
+                Josmans.versionTagsToProcess(mvnPrj.getArtifactId(), repoTags, cfg.getIgnoredVersions())
+                       .values());
+        Collections.reverse(ret);
+        return ImmutableList.copyOf(ret);
+    }
+
+    /**
      * Replaces key / value properties in {@code text}
      * 
      * @since 0.8.0
@@ -767,7 +772,7 @@ public class JosmanProject {
                 .replaceAll("\\$\\{" + key + "}", prop)
                 .replaceAll("\\$'\\{" + key + "}", "\\${" + key + "}");                
         
-    }
+    }    
 
     private static void addVersionHeaderTag(Jerry skeleton, String prependedPath, SemVersion version,
             boolean selected) {
@@ -783,9 +788,12 @@ public class JosmanProject {
 
     private void buildIndex(SemVersion latestVersion, Map<String, String> evals) {
         try {
-            File sourceMdFile = new File(sourceRepoDir, README_MD);
-            copyMdAsHtml(new FileInputStream(sourceMdFile), README_MD, latestVersion, ImmutableList.of(README_MD),
-                    evals);
+            File sourceMdFile = new File(cfg.getSourceRepoDir(), README_MD);
+            copyMdAsHtml(   new FileInputStream(sourceMdFile), 
+                            README_MD, 
+                            latestVersion, 
+                            ImmutableList.of(README_MD),
+                            evals);
         } catch (FileNotFoundException ex) {
             throw new JosmanException("Error while building index!", ex);
         }
@@ -793,14 +801,14 @@ public class JosmanProject {
 
     private File targetVersionDir(SemVersion semVersion) {
         checkNotNull(semVersion);
-        return new File(pagesDir, "" + semVersion.getMajor() + "." + semVersion.getMinor());
+        return new File(cfg.getPagesDir(), "" + semVersion.getMajor() + "." + semVersion.getMinor());
     }
 
     /**
      * Returns the directory where docs about the latest version will end up.
      */
     private File targetLatestDocsDir() {
-        return new File(pagesDir, "latest");
+        return new File(cfg.getPagesDir(), "latest");
     }
 
     /**
@@ -979,10 +987,43 @@ public class JosmanProject {
      * branch snapshot. Otherwise all released versions will be processed.
      *
      */
-    public boolean isSnapshotMode() {
-        return snapshotMode;
+    public JosmanConfig getConfig() {
+        return cfg;
     }
 
+    /**
+     * Returns the snapshot version in the current branch
+     * 
+     * @since 0.8.0
+     */
+    private SemVersion snapshotVersion() {
+        return SemVersion.of(mvnPrj.getVersion()).withPreReleaseVersion("");
+    }
+    
+    /**
+     * @since 0.8.0
+     */
+    private boolean snapshotReplacesFirstTag(){
+                
+        if (!cfg.isSnapshot()){        
+            return false;
+        }
+        
+        SemVersion snapVer = snapshotVersion();
+        List<RepositoryTag> tags = repoTagsDescendant();
+        if (tags.size() > 0) {
+            SemVersion ver = Josmans.version(mvnPrj.getArtifactId(), tags.get(0)
+                    .getName());
+            
+            return snapVer.getMajor() == ver.getMajor()
+                    && snapVer.getMinor() == ver.getMinor()
+                    && snapVer.getPatch() >= ver.getPatch();
+        } else {
+            return false;
+        }
+    }
+            
+    
     /**
      * @throws JosmanNotFoundException
      * @throws JosmanException
@@ -992,7 +1033,7 @@ public class JosmanProject {
         MavenXpp3Reader reader = new MavenXpp3Reader();
 
         try {
-            File repoFile = new File(sourceRepoDir, ".git");
+            File repoFile = new File(cfg.getSourceRepoDir(), ".git");
 
             FileRepositoryBuilder builder = new FileRepositoryBuilder();
             repo = builder.setGitDir(repoFile)
@@ -1002,67 +1043,48 @@ public class JosmanProject {
             throw new JosmanException("Error while reading local git repo!", ex);
         }
 
-        LOG.log(Level.INFO, "Cleaning target: {0}  ....", pagesDir.getAbsolutePath());
-        if (!pagesDir.getAbsolutePath()
+        LOG.log(Level.INFO, "Cleaning target: {0}  ....", cfg.getPagesDir().getAbsolutePath());
+        if (!cfg.getPagesDir().getAbsolutePath()
                      .endsWith("site")) {
-            throw new JosmanException("target directory does not end with 'site': " + pagesDir.getAbsolutePath());
+            throw new JosmanException("target directory does not end with 'site': " + cfg.getPagesDir().getAbsolutePath());
         }
         try {
-            FileUtils.deleteDirectory(pagesDir);
+            FileUtils.deleteDirectory(cfg.getPagesDir());
             LOG.info("Done deleting directory");
         } catch (IOException ex) {
-            throw new JosmanException("Error while deleting directory " + pagesDir.getAbsolutePath(), ex);
+            throw new JosmanException("Error while deleting directory " + cfg.getPagesDir().getAbsolutePath(), ex);
         }
 
-        SemVersion snapshotVersion = SemVersion.of(mvnPrj.getVersion())
-                                               .withPreReleaseVersion("");
+        
 
-        if (snapshotMode) {
-            LOG.log(Level.INFO, "Processing local version");
-            File evalMap = new File(sourceRepoDir, "target/apidocs/" + RELATIVE_EVAL_FILEPATH);
-            @Nullable
-            Map<String, String> curEvals;
-            if (evalMap.exists()) {
-                curEvals = Josmans.loadEvalMap(evalMap);
-            } else {
-                LOG.info("Couldn't find evals map (to create it just run the tests): " + evalMap.getAbsolutePath());
-                curEvals = Collections.EMPTY_MAP;
-            }
+        if (cfg.isReleases()) {
 
-            copyJavadoc(snapshotVersion);
-            try {
-                buildIndex(snapshotVersion, curEvals);
-                processDocsDir(snapshotVersion, curEvals);
-            } catch (ExprNotFoundException ex) {
-                throw new ExprNotFoundException("SNAPSHOT VERSION IS MISSING EVALUATED EXPRESSION: "
-                        + ex.getExpr() + " FOUND IN FILE " + ex.getRelPath()+ "\n!!!!!!   MAYBE YOU FORGOT TO RUN   mvn josman:eval ? \n\n", ex.getExpr(), ex.getRelPath());
-            }
-            
-            createLatestDocsDirectory(snapshotVersion);
-
-
-        } else {
             LOG.log(Level.INFO, "Fetching {0}/{1} tags.",
                     new Object[] { Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId() });
 
             repoTags = Josmans.fetchTags(Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId());
 
-            if (repoTags.isEmpty()) {
+            if (repoTags.isEmpty() && !cfg.isSnapshot()) {
                 throw new JosmanNotFoundException("There are no tags at all in the repository!!");
             }
-            SemVersion latestPublishedVersion = Josmans.latestVersion(mvnPrj.getArtifactId(), repoTags);
+            SemVersion latestPublishedVersion = Josmans.latestVersion(mvnPrj.getArtifactId(), remainingTags());
+
             LOG.log(Level.INFO, "Processing published version");
-            String curBranch = Josmans.readRepoCurrentBranch(sourceRepoDir);
+            String curBranch = Josmans.readRepoCurrentBranch(cfg.getSourceRepoDir());
 
             SortedMap<String, RepositoryTag> filteredTags = Josmans.versionTagsToProcess(mvnPrj.getArtifactId(),
-                    repoTags, ignoredVersions);
+                    remainingTags(), cfg.getIgnoredVersions());
 
             for (RepositoryTag tag : filteredTags.values()) {
                 LOG.log(Level.INFO, "Processing release tag {0}", tag.getName());
                 SemVersion version = Josmans.version(mvnPrj.getArtifactId(), tag.getName());
-                copyJavadoc(version); // before processGit so we can have the
-                                      // eval file ready
-
+                if (cfg.isJavadoc()){
+                    copyJavadoc(version); // before processGit so we can have the
+                                          // eval file ready                                                     
+                } else {
+                    LOG.info("Skipping Javadoc for version " + version);
+                }
+                
                 Map<String, String> evals;
                 File evalMapFile = new File(targetJavadocDir(version), RELATIVE_EVAL_FILEPATH);
                 if (evalMapFile.exists()) {
@@ -1082,32 +1104,67 @@ public class JosmanProject {
                 }
             }
 
-            File evalMap = new File(targetJavadocDir(latestPublishedVersion), RELATIVE_EVAL_FILEPATH);
-            Map<String, String> latestPublishedEvals;
+
+            if (!cfg.isSnapshot()){
+                File evalMap = new File(targetJavadocDir(latestPublishedVersion), RELATIVE_EVAL_FILEPATH);
+                Map<String, String> latestPublishedEvals;
+                if (evalMap.exists()) {
+                    latestPublishedEvals = Josmans.loadEvalMap(evalMap);
+                } else {
+                    LOG.info("Couldn't find eval map (if docs don't contain $eval it's not necessary).");
+                    latestPublishedEvals = Collections.EMPTY_MAP;
+                }
+                
+                try {
+                    buildIndex(latestPublishedVersion, latestPublishedEvals);
+                } catch (ExprNotFoundException ex) {
+                    throw new ExprNotFoundException("RELEASED VERSION " + latestPublishedVersion
+                            + " IS MISSING EVALUATION OF EXPRESSION: " + ex.getExpr()
+                            + " FOUND IN FILE " + ex.getRelPath(),
+                            ex.getExpr(),
+                            ex.getRelPath(),
+                            ex);
+                }                
+            }
+
+        }        
+        
+        if (cfg.isSnapshot()) {
+            SemVersion snapVer = snapshotVersion();
+
+            LOG.log(Level.INFO, "Processing local version");
+            File evalMap = new File(cfg.getSourceRepoDir(), "target/apidocs/" + RELATIVE_EVAL_FILEPATH);
+            @Nullable
+            Map<String, String> curEvals;
             if (evalMap.exists()) {
-                latestPublishedEvals = Josmans.loadEvalMap(evalMap);
+                curEvals = Josmans.loadEvalMap(evalMap);
             } else {
-                LOG.info("Couldn't find eval map (if docs don't contain $eval it's not necessary).");
-                latestPublishedEvals = Collections.EMPTY_MAP;
+                LOG.info("Couldn't find evals map (to create it just run the tests): " + evalMap.getAbsolutePath());
+                curEvals = Collections.EMPTY_MAP;
             }
 
+            if (cfg.isJavadoc()){
+                copyJavadoc(snapVer);    
+            }
+            
             try {
-
-                buildIndex(latestPublishedVersion, latestPublishedEvals);
+                buildIndex(snapVer, curEvals);
+                processDocsDir(snapVer, curEvals);
             } catch (ExprNotFoundException ex) {
-                throw new ExprNotFoundException("RELEASED VERSION " + latestPublishedVersion
-                        + " IS MISSING EVALUATION OF EXPRESSION: " + ex.getExpr()
-                        + " FOUND IN FILE " + ex.getRelPath(),
-                        ex.getExpr(),
-                        ex.getRelPath(),
-                        ex);
+                throw new ExprNotFoundException("SNAPSHOT VERSION IS MISSING EVALUATED EXPRESSION: "
+                        + ex.getExpr() + " FOUND IN FILE " + ex.getRelPath()+ "\n!!!!!!   MAYBE YOU FORGOT TO RUN   mvn josman:eval ? \n\n", ex.getExpr(), ex.getRelPath());
             }
+            
+            createLatestDocsDirectory(snapVer);
+
 
         }
+        
+        
 
-        Josmans.copyDirFromResource(Josmans.class, "/website-template", pagesDir);       
+        Josmans.copyDirFromResource(Josmans.class, "/website-template", cfg.getPagesDir());       
 
-        File targetImgDir = new File(pagesDir, "img");
+        File targetImgDir = new File(cfg.getPagesDir(), "img");
 
         try {
             File programLogo = programLogo(sourceDocsDir(), mvnPrj.getArtifactId());
@@ -1119,11 +1176,11 @@ public class JosmanProject {
                 FileUtils.copyFile(programLogo, new File(targetImgDir, programLogoName(mvnPrj.getArtifactId())));
             }
         } catch (Exception ex){
-            if (snapshotMode){
-                LOG.severe("COULDN'T COPY THE PROGRAM LOGO!");
-                LOG.log(Level.FINE,"Exception was: ", ex);
-            } else {
+            if (cfg.isFailOnError()){
                 throw new JosmanException("Error while copying files!", ex);
+            } else {
+                LOG.severe("COULDN'T COPY THE PROGRAM LOGO!");
+                LOG.log(Level.FINE,"Exception was: ", ex);                
             }                
         }
 
@@ -1137,37 +1194,37 @@ public class JosmanProject {
                 FileUtils.copyFile(orgLogo, new File(targetImgDir, orgLogoName(mvnPrj.getArtifactId())));
             }
         } catch (Exception ex){
-            if (snapshotMode){
-                LOG.severe("COULDN'T COPY THE organization logo!");
-                LOG.log(Level.FINE,"Exception was: ", ex);
-            } else {
+            if (cfg.isFailOnError()){
                 throw new JosmanException("Error while copying files!", ex);
+            } else {
+                LOG.severe("COULDN'T COPY THE organization logo!");
+                LOG.log(Level.FINE,"Exception was: ", ex);                
             }                
         }
         try {
             FileUtils.copyDirectory(new File(sourceDocsDir(), "img/"), targetImgDir);
         } catch (Exception ex){
-            if (snapshotMode){
+            if (cfg.isFailOnError()){
+                throw new JosmanException("Error while copying images!", ex);
+            } else {                
                 LOG.severe("COULDN'T COPY docs/img DIRECTORY!");
                 LOG.log(Level.FINE,"Exception was: ", ex);
-            } else {
-                throw new JosmanException("Error while copying images!", ex);
             }
         }
         
         try { // copy all other images
-            FileUtils.copyFile(new File(sourceRepoDir, "LICENSE.txt"), new File(pagesDir, "LICENSE.txt"));
+            FileUtils.copyFile(new File(cfg.getSourceRepoDir(), "LICENSE.txt"), new File(cfg.getPagesDir(), "LICENSE.txt"));
 
         } catch (Exception ex) {
-            if (snapshotMode){
-                LOG.severe("COULDN'T COPY THE LICENCE.txt FILE!");
-                LOG.log(Level.FINE,"Exception was: ", ex);
-            } else {
+            if (cfg.isFailOnError()){
                 throw new JosmanException("Error while copying files!", ex);
+            } else {
+                LOG.severe("COULDN'T COPY THE LICENCE.txt FILE!");
+                LOG.log(Level.FINE,"Exception was: ", ex);                
             }
         }
 
-        LOG.log(Level.INFO, "\n\nYou can now browse the website at {0}/index.html\n\n", pagesDir.getAbsolutePath());
+        LOG.log(Level.INFO, "\n\nYou can now browse the website at {0}/index.html\n\n", cfg.getPagesDir().getAbsolutePath());
     }
 
     /**
@@ -1269,12 +1326,24 @@ public class JosmanProject {
      * @throws JosmanNotFoundException
      */
     private void copyJavadoc(SemVersion version) {
+        
+        if (!cfg.isJavadoc()){
+            LOG.fine("javadoc flag off, skipping javadoc copy.");
+        }
+        
         File targetJavadoc = targetJavadocDir(version);
         if (targetJavadoc.exists() && (targetJavadoc.isFile() || targetJavadoc.length() > 0)) {
-            throw new JosmanIoException(
-                    "Target directory for Javadoc already exists!!! " + targetJavadoc.getAbsolutePath());
+            String s = "Target directory for Javadoc already exists!!! " + targetJavadoc.getAbsolutePath();
+            if (cfg.isFailOnError()){
+                throw new JosmanIoException(s);
+            } else {
+                LOG.warning(s + "\nSkipping javadoc." );
+                return;
+            }            
         }
-        if (snapshotMode) {
+                
+        if (cfg.isSnapshot() && version.equals(snapshotVersion()) ) {
+                        
             File sourceJavadoc = sourceJavadocDir(version);
             if (sourceJavadoc.exists()) {
 
@@ -1284,29 +1353,54 @@ public class JosmanProject {
                     FileUtils.copyDirectory(sourceJavadoc, targetJavadoc);
                     LOG.info("Done copying javadoc.");
                 } catch (Exception ex) {
-                    throw new JosmanIoException("Error while copying Javadoc from " + sourceJavadoc.getAbsolutePath()
-                            + " to " + targetJavadoc.getAbsolutePath(), ex);
+                    if (cfg.isFailOnError()){
+                        throw new JosmanIoException("Error while copying Javadoc from " + sourceJavadoc.getAbsolutePath()
+                        + " to " + targetJavadoc.getAbsolutePath(), ex);    
+                    } else {
+                        LOG.log(Level.WARNING, "Error while copying javadoc, skipping it. "
+                                + "Error message was: {1}",new Object[] { ex.getMessage() });
+                        LOG.log(Level.FINE,"Error was:",  ex);
+                    }
+                    
                 }
             } else {
-                LOG.log(Level.INFO, "Couldn''t find javadoc, skipping it. Looked in {0}",
-                        sourceJavadoc.getAbsolutePath());
+                String s = "Couldn''t find javadoc! Looked in " +  sourceJavadoc.getAbsolutePath();
+                if (cfg.isFailOnError()){                    
+                    throw new JosmanIoException(s);    
+                } else {
+                    LOG.log(Level.WARNING, s + "\nSkipping javadoc.");                    
+                }                      
             }
-        } else {
+            
+        }
+        
+        
+        if (cfg.isReleases() && !version.equals(snapshotVersion())) {
             File jardocs;
             try {
                 jardocs = Josmans.fetchJavadoc(mvnPrj.getGroupId(), mvnPrj.getArtifactId(), version);
             } catch (Exception ex) {
                 String sep = File.separator;
-                String localJarPath = sourceRepoDir.getAbsolutePath() + sep + "target" + sep + "checkout" + sep
+                String localJarPath = cfg.getSourceRepoDir().getAbsolutePath() + sep + "target" + sep + "checkout" + sep
                         + "target" + sep + Josmans.javadocJarName(mvnPrj.getArtifactId(), version);
                 LOG.log(Level.WARNING,
-                        "Error while fetching javadoc from Maven Central, trying to locate it at " + localJarPath, ex);
+                        "Can't fetch javadoc from Maven Central, trying to locate it at " + localJarPath);
+                LOG.log(Level.FINE, "Exception was", ex );
                 jardocs = new File(localJarPath);
-                if (!jardocs.exists()) {
-                    throw new JosmanNotFoundException("Couldn't find any jar for javadoc!");
-                }
             }
-            Josmans.copyDirFromJar(jardocs, targetJavadocDir(version), "");
+
+            try {
+                Josmans.copyDirFromJar(jardocs, targetJavadocDir(version), "");    
+            } catch (Exception ex) {
+                String s = "Couldn't find any jar for javadoc at version " + version;
+                if (cfg.isFailOnError()){                        
+                    throw new JosmanNotFoundException(s);    
+                } else {
+                    LOG.warning(s + " Skipping it.");
+                    LOG.log(Level.FINE, "Exception was:", ex);
+                }                    
+            }
+                        
         }
 
     }
@@ -1316,7 +1410,7 @@ public class JosmanProject {
     }
 
     public ImmutableList<SemVersion> getIgnoredVersions() {
-        return ignoredVersions;
+        return cfg.getIgnoredVersions();
     }
 
     /**
@@ -1358,13 +1452,13 @@ public class JosmanProject {
                                                             file.getPath(),
                                                             Thread.currentThread()
                                                              .getContextClassLoader(),
-                                                             snapshotMode));
+                                                             !cfg.isFailOnError()));
                 }
             }
 
         }.process();
 
-        Josmans.saveEvalMap(evals, new File(sourceRepoDir, TARGET_EVAL_FILEPATH));
+        Josmans.saveEvalMap(evals, new File(cfg.getSourceRepoDir(), TARGET_EVAL_FILEPATH));
 
     }
 

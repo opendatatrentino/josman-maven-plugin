@@ -131,6 +131,12 @@
 				<artifactId>josman-maven-plugin</artifactId>
 				<version>${project.version}</version>
 				<configuration>
+				<ignoredVersions>
+					 <ignoredVersion> 0.6.0</ignoredVersion> 
+					<!-- <ignoredVersion> 0.6.1</ignoredVersion>  -->
+					
+				</ignoredVersions>
+				
 				</configuration>
 			</plugin>
 			<plugin>
@@ -138,7 +144,7 @@
 				<artifactId>site-maven-plugin</artifactId>
 			</plugin>
 			
-							<plugin>
+			<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
 					<configuration>
@@ -156,7 +162,7 @@
 						</excludes>
 
 					</configuration>
-				</plugin>
+			</plugin>
 			
 		</plugins>
 	</build>

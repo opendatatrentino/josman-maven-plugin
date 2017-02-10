@@ -18,8 +18,8 @@ package eu.trentorise.opendata.josman;
 import static eu.trentorise.opendata.commons.validation.Preconditions.checkNotEmpty;
 import eu.trentorise.opendata.commons.SemVersion;
 import eu.trentorise.opendata.josman.JosmanProject;
-import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.maven.plugin.AbstractMojo;
@@ -27,6 +27,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+
 
 /**
  * Base class to extend for Josman mojos
@@ -56,10 +57,64 @@ public abstract class JosmanMojo extends AbstractMojo {
 
     /**
      * If true only a website for the latest snapshot version will be generated
+     * 
+     * @deprecated use josman.snapshot instead . See <a href="https://github.com/opendatatrentino/josman-maven-plugin/issues/29" target=_blank>related issue</a>
+     *             <br/><b>NOTE: STARTING WITH 0.8.0, SNAPSHOT GENERATION IS TRUE BY DEFAULT.</b>.  
      */
-    @Parameter(property = "site.snapshot", defaultValue = "false")
+    @Deprecated()
+    @Parameter(property = "site.snapshot")    
+    private String siteSnapshot;
+
+    /**
+     * If enabled generates documentation for the current snapshot. Supercedes 'site.snapshot'.
+     * 
+     * <br/><b>NOTE: STARTING WITH 0.8.0, SNAPSHOT GENERATION IS TRUE BY DEFAULT.</b>
+     */
+    @Parameter(property = "josman.snapshot")
     private String snapshot;
     
+    /**
+     * If enabled generates documentation also for past released versions. False by default.
+     * 
+     */
+    @Parameter(property = "josman.releases")
+    private String releases;
+    
+    /**
+     * If enabled copies latest javadoc (if present). False by default.
+     * 
+     */
+    @Parameter(property = "josman.javadoc")
+    private String javadoc;
+    
+    /**
+     * If true josman fails on warnings and errors. False by default.
+     * 
+     */
+    @Parameter(property = "josman.failOnErrors")
+    private String failOnErrors;    
+    
+    
+    /**
+     * Modality of execution:
+     * 
+     * <ul>
+     * <li><b>dev (default)</b>  : generates documentation only about current snapshot, 
+     * doesn't fail on errors/warnings and doesn't copy javadocs.
+     * </li>
+     * <li><b>ci</b>: generates documentation only about current snapshot, doesn't fail on errors/warnings
+     * and copies javadocs if present.</li>
+     * <li><b>staging</b>: generates all it can about released versions, and fails on errors/warnings.
+     * Also generates documentation about the  current snapshot.</li>             
+     * <li><b>release</b>: generates all it can about released versions, and fails on errors/warnings.</li>
+     * </ul>
+     * See also <a href="https://github.com/opendatatrentino/josman-maven-plugin/issues/29" target="_blank">related discussion</a> and 
+     * {@link JosmanMode}</br>
+     * 
+     * @since 0.8.0
+     */         
+    @Parameter(property = "josman.mode", defaultValue = "dev")
+    private String mode;
     
     protected JosmanMojo(String messagePrefix) {
         checkNotEmpty(messagePrefix, "Invalid message prefix!");
@@ -78,6 +133,31 @@ public abstract class JosmanMojo extends AbstractMojo {
         getLog().error(messagePrefix + ":  " + msg);
     }
 
+    /**
+     * @since 0.8.0
+     */    
+    protected void fatalError(String msg, MojoExecutionException ex) throws MojoExecutionException {              
+        throw ex;
+    }
+
+    /**
+     * @since 0.8.0
+     */    
+    protected void fatalError(String msg, Exception ex) throws MojoExecutionException {
+        String s = "\n         " + messagePrefix + ":  " + msg;        
+        throw new MojoExecutionException(s, ex);
+    }
+    
+    
+    /**
+     * @since 0.8.0
+     */
+    protected void fatalError(String msg) throws MojoExecutionException {
+        String s = "\n         " + messagePrefix + ":  " + msg;               
+        throw new MojoExecutionException(s);
+    }
+
+    
     public MavenProject getProject() {
         return project;
     }
@@ -119,34 +199,84 @@ public abstract class JosmanMojo extends AbstractMojo {
         info("organization site: " + getProject().getOrganization().getName() + "   " + getProject().getOrganization().getUrl());
         getLog().info("");
 
-        boolean isSnapshot;
-        try {
-            isSnapshot = Boolean.parseBoolean(snapshot);
-        }
-        catch (Exception ex) {
-            throw new MojoExecutionException("Couldn't parse 'local' parameter, found string: " + snapshot, ex);
+        JosmanConfig.Builder configb = JosmanConfig.builder()
+                                        .setSourceRepoDir("")
+                                        .setPagesDir("target/site");
+                
+        
+        if (siteSnapshot != null && siteSnapshot.length() > 0){            
+            fatalError("Starting with version v0.8.0 of Josman, site.snapshot is not used anymore! "
+                    + "\n   See https://github.com/opendatatrentino/josman-maven-plugin/issues/29");
         }
 
-        List<SemVersion> parsedIgnoredVersions = new ArrayList();
+        try {
+            configb.setMode(JosmanMode.valueOf(mode));
+        } catch (Exception ex) {
+            
+            fatalError("Couldn't parse 'josman.mode' parameter, found string: '" + mode + "'\n"
+                       +"\n Possible options are: \n"
+                       + Arrays.toString(JosmanMode.values()).replace("[", "").replace("]","")
+                       + "\n\n");
+        }
+        
+        try {
+            if (snapshot != null){
+                configb.setSnapshot(Boolean.parseBoolean(snapshot));
+            }
+        } catch (Exception ex) {            
+            fatalError("Couldn't parse 'josman.snapshot' parameter, found string: " + snapshot, ex);
+        }
+        
+        try {
+            if (releases != null){
+                configb.setReleases(Boolean.parseBoolean(releases));
+            }
+        } catch (Exception ex) {
+            fatalError("Couldn't parse 'josman.releases' parameter, found string: " + releases, ex);
+        }
+
+        try {
+            if (javadoc != null){
+                configb.setJavadoc(Boolean.parseBoolean(javadoc));                
+            }
+        } catch (Exception ex) {
+            fatalError("Couldn't parse 'josman.javadoc' parameter, found string: " + javadoc, ex);
+        }
+
+        try {
+            if (failOnErrors != null){
+                configb.setFailOnError(Boolean.parseBoolean(failOnErrors));               
+            } 
+        } catch (Exception ex) {
+            fatalError("Couldn't parse 'josman.failOnErrors' parameter, found string: " + failOnErrors, ex);
+        }       
+                       
+        
+        
+        List<SemVersion> parsedIgnoredVersions = new ArrayList<>();
         if (ignoredVersions != null) {
-            for (String s : ignoredVersions) {
+            for (String iv : ignoredVersions) {
                 try {
-                    parsedIgnoredVersions.add(SemVersion.of(s));
+                    parsedIgnoredVersions.add(SemVersion.of(iv));
                 }
                 catch (Exception ex) {
-                    throw new MojoExecutionException("Couldn't parse 'ignoredVersions' parameter for version " + s + ", found list: " + ignoredVersions, ex);
+                    fatalError("Couldn't parse 'ignoredVersions' parameter for version " 
+                    + iv + ", found list: " + ignoredVersions, ex);
                 }
             }
         }
+        configb.setIgnoredVersions(parsedIgnoredVersions);        
 
+        JosmanConfig cfg = configb.build();
+        
+        info("\n\n" + cfg.toString());        
+        
         return new JosmanProject(
                 getProject(),
-                "",
-                "target/site",
-                parsedIgnoredVersions,
-                isSnapshot
-        );
+                cfg);
 
     }
+    
+    
 
 }
