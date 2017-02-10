@@ -309,21 +309,54 @@ public class JosmanProject {
         return new File(sourceDocsDir, "img" + File.separator + programLogoName(repoName));
     }
     
-    /**
-     * @since 0.8.0
-     */    
-    static String orgLogoName(String repoName) {
-        return repoName + "-org-200px.png";
-    }    
+    
     
     /**
      * @since 0.8.0
      */
     static File orgLogo(File sourceDocsDir, String repoName) {
-        return new File(sourceDocsDir, "img" + File.separator + orgLogoName(repoName));
+        return new File(sourceDocsDir, "img" + File.separator + Josmans.ORG_LOGO_NAME);
     }
 
+    /**
+     * Returns the name of the organization 
+     * 
+     * Url can is looked first in Maven project {@code organization} tag. 
+     * If not found, Github organization is used.
+     * 
+     * @since 0.8.0
+     */
+    private String orgName(){
+        if (mvnPrj != null 
+                && mvnPrj.getOrganization() != null){                       
+            
+            if (TodUtils.isNotEmpty(mvnPrj.getOrganization().getUrl())){
+                return mvnPrj.getOrganization().getName();
+            }            
+        } 
+        return Josmans.organization(mvnPrj.getUrl());
+    }
 
+    /**
+     * Returns the url of the organization 
+     * 
+     * Url can is looked first in Maven project {@code organization} tag. 
+     * If not found, Github organization is used.
+     * 
+     * @since 0.8.0
+     */
+    private String orgUrl(){
+        if (mvnPrj != null 
+                && mvnPrj.getOrganization() != null){                       
+            
+            if (TodUtils.isNotEmpty(mvnPrj.getOrganization().getUrl())){
+                return mvnPrj.getOrganization().getUrl();
+            }            
+        } 
+        return "https://github.com/" + Josmans.organization(mvnPrj.getUrl());
+    }
+
+    
     /**
      * Copies provided stream to destination, which is determined according to
      * {@code relPath}, {@code preprendedPath} and {@code version}
@@ -577,11 +610,11 @@ public class JosmanProject {
 
         if (orgLogo.exists()) {
             skeleton.$("#josman-org-logo")
-                    .attr("src", prependedPath + "img/" + orgLogoName(mvnPrj.getArtifactId()));
+                    .attr("src", prependedPath + "img/" + Josmans.ORG_LOGO_NAME);
             
             skeleton.$(JOSMAN_ORG_LOGO_LINK)
-                    .attr("href", mvnPrj.getOrganization().getUrl())
-                    .attr("title", mvnPrj.getOrganization().getName());
+                    .attr("href", orgUrl())
+                    .attr("title", orgName());
         } else {
             LOG.warning("Couldn't find organization logo in " + orgLogo.getAbsolutePath());
             skeleton.$(JOSMAN_ORG_LOGO_LINK)
@@ -1035,7 +1068,7 @@ public class JosmanProject {
                 LOG.log(Level.INFO, "Found org logo: {0}", orgLogo.getAbsolutePath());
                 LOG.log(Level.INFO, "      copying it into dir {0}", targetImgDir.getAbsolutePath());
 
-                FileUtils.copyFile(orgLogo, new File(targetImgDir, orgLogoName(mvnPrj.getArtifactId())));
+                FileUtils.copyFile(orgLogo, new File(targetImgDir, Josmans.ORG_LOGO_NAME));
             }
             
 

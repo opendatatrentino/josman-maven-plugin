@@ -96,6 +96,12 @@ public final class Josmans {
      */
     public static final CSVFormat EVAL_CSV_FORMAT = CSVFormat.DEFAULT.withRecordSeparator("\n");
 
+    /**
+     * @since 0.1.0
+     */
+    public static final String ORG_LOGO_NAME = "org-200px.png";
+    
+    
     private Josmans() {
     }
 
@@ -268,7 +274,8 @@ public final class Josmans {
         }
         tags.add(candidateTag);
     }
-
+    
+    
     /**
      * Returns a new list with given relpaths ordered by importance, the first
      * being the most important.
@@ -854,7 +861,7 @@ public final class Josmans {
      * Returns the organization given a project url, so from i.e.
      * <a href="https://github.com/opendatatrentino/tod-commons">https://github.
      * com/opendatatrentino/tod-commons
-     * </a> will extract '{@code tod-commons}'
+     * </a> will extract '{@code opendatatrentino}'
      * 
      * @since 0.8.0
      */
