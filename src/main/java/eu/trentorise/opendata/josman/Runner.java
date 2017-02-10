@@ -13,12 +13,10 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.Parser;
 import org.apache.commons.cli.PosixParser;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.project.MavenProject;
-import org.parboiled.common.ImmutableList;
 
 /**
  *
@@ -129,12 +127,16 @@ public class Runner {
         }catch(Exception ex){}
         MavenProject mvnPrj = new MavenProject(model);
         
+        
+        
         JosmanProject josman = new JosmanProject(
                 mvnPrj,
-                repoPath, // ".."+ sep + ".." + sep + repoName + sep + "prj", // todo fixed path!
-                outPath, // ".."+ sep + ".." + sep + repoName + sep + "prj" + sep +"target" + sep + "site", // todo fixed path!
-                ignoredVersions, //ImmutableList.of(SemVersion.of("0.1.0")),
-                snapshot //true
+                JosmanConfig.builder()
+                .setSourceRepoDir(repoPath)  // ".."+ sep + ".." + sep + repoName + sep + "prj", // todo fixed path!
+                .setPagesDir(outPath)        // ".."+ sep + ".." + sep + repoName + sep + "prj" + sep +"target" + sep + "site", // todo fixed path!
+                .setIgnoredVersions(ignoredVersions) //ImmutableList.of(SemVersion.of("0.1.0")),
+                .setSnapshot(snapshot)  //true
+                .build()
         );
 
         josman.generateSite();

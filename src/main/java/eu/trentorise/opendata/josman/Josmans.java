@@ -55,7 +55,8 @@ import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
-import org.parboiled.common.ImmutableList;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Utilities for Josman
@@ -445,7 +446,7 @@ public final class Josmans {
     }
 
     public static SemVersion latestVersion(String repoName, List<RepositoryTag> tags) {
-        TodUtils.checkNotEmpty(tags, "Invalid repository tags!");
+        Preconditions.checkNotEmpty(tags, "Invalid repository tags!");
         SortedMap<String, RepositoryTag> filteredTags = Josmans.versionTags(repoName, tags);
         if (filteredTags.isEmpty()) {
             throw new JosmanNotFoundException("Couldn't find any released version!");
