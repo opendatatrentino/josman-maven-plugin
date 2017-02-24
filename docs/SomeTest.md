@@ -37,7 +37,11 @@ Links with extension:
 
 Great discovery: links without extension don't work...
 
+[Go to chap](SomeTest.md#chap)
+
+[Go to page](SomeTest.md)
+
 ### Expressions
 
 
-
+### chap
