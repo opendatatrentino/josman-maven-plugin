@@ -86,6 +86,7 @@ public class JosmansTest {
         
         assertEquals("a.html#f", Josmans.htmlizePath("a.html#f"));
         assertEquals("a.html#f", Josmans.htmlizePath("a.md#f"));
+        assertEquals("SomeTest.html#hello", Josmans.htmlizePath("SomeTest.md#hello"));
                 
         assertEquals("a.html?q", Josmans.htmlizePath("a.html?q"));
         assertEquals("a.html?q#f", Josmans.htmlizePath("a.html?q#f"));

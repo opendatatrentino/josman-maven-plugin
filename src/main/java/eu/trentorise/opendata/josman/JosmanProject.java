@@ -43,6 +43,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.SortedMap;
@@ -577,72 +579,10 @@ public class JosmanProject {
         String contentFromMdHtml = markdownRenderer.render(markdownNode);
         Jerry contentFromMd = Jerry.jerry(contentFromMdHtml);
 
-        contentFromMd.$("a")
-                     .each(new JerryFunction() {
+        fixLinks(version, prependedPath, contentFromMd);
 
-                         @Override
-                         public boolean onNode(Jerry arg0, int arg1) {
-                             String href = arg0.attr("href");
-                             if (href.startsWith(prependedPath + "src")) {
-                                 arg0.attr("href",
-                                         href.replace(prependedPath + "src",
-                                                 Josmans.repoRelease(Josmans.organization(mvnPrj.getUrl()),
-                                                         mvnPrj.getArtifactId(), version) + "/src"));
-                                 return true;
-                             }
-                             if (href.endsWith(".md")) {
-                                 arg0.attr("href", Josmans.htmlizePath(href));
-                                 return true;
-                             }
-
-                             if (href.equals(prependedPath + "../../wiki")) {
-                                 arg0.attr("href", href.replace(prependedPath + "../../wiki", Josmans.repoWiki(
-                                         Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId())));
-                                 return true;
-                             }
-
-                             if (href.equals(prependedPath + "../../issues")) {
-                                 arg0.attr("href", href.replace(prependedPath + "../../issues", Josmans.repoIssues(
-                                         Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId())));
-                                 return true;
-                             }
-
-                             if (href.equals(prependedPath + "../../milestones")) {
-                                 arg0.attr("href",
-                                         href.replace(prependedPath + "../../milestones", Josmans.repoMilestones(
-                                                 Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId())));
-                                 return true;
-                             }
-
-                             if (TodUtils.removeTrailingSlash(href)
-                                         .equals(DOCS_FOLDER)) {
-                                 arg0.attr("href", Josmans.majorMinor(version) + "/index.html");
-                                 return true;
-                             }
-
-                             if (href.startsWith(DOCS_FOLDER + "/")) {
-                                 arg0.attr("href", Josmans.majorMinor(version) + href.substring(DOCS_FOLDER.length()));
-                                 return true;
-                             }
-
-                             return true;
-                         }
-                     });
-
-        contentFromMd.$("img")
-                     .each(new JerryFunction() {
-
-                         @Override
-                         public boolean onNode(Jerry arg0, int arg1) {
-                             String src = arg0.attr("src");
-                             if (src.startsWith(DOCS_FOLDER + "/")) {
-                                 arg0.attr("src", Josmans.majorMinor(version) + src.substring(DOCS_FOLDER.length()));
-                                 return true;
-                             }
-                             return true;
-                         }
-                     });
-
+        fixImagePaths(version, prependedPath, contentFromMd);
+        
         skeleton.$("#josman-internal-content")
                 .html(contentFromMd.html());
 
@@ -763,6 +703,123 @@ public class JosmanProject {
 
     }
     
+    /**
+     * @since 0.8.0
+     */
+    private void fixImagePaths(final SemVersion version, final  String prependedPath, Jerry contentFromMd) {
+        
+        contentFromMd.$("img")
+        .each(new JerryFunction() {
+
+            @Override
+            public boolean onNode(Jerry arg0, int arg1) {
+                String src = null;
+                try {
+                    src = arg0.attr("src");
+                    if (src.startsWith(DOCS_FOLDER + "/")) {
+                        arg0.attr("src", Josmans.majorMinor(version) + src.substring(DOCS_FOLDER.length()));
+                        return true;
+                    }
+                } catch (Exception ex){
+                    String msg = "Invalid image with src:" + src +"\n prependedPath="+prependedPath + "\nversion=" + version;
+                    if (cfg.isFailOnError()){
+                        throw new JosmanException(msg, ex);    
+                    } else {
+                        LOG.warning(msg + "\n Reason:" + ex.getMessage());                        
+                        return true;
+                    }
+                }
+                return true;
+            }
+        });
+
+    }
+
+    /**
+     * @since 0.8.0
+     */
+    private void fixLinks(final SemVersion version, final String prependedPath, Jerry contentFromMd) {
+        contentFromMd.$("a")
+        .each(new JerryFunction() {
+
+            @Override
+            public boolean onNode(Jerry arg0, int arg1) {                               
+                
+                String href = arg0.attr("href");
+                                               
+                URI uri;
+                
+                try {
+                    String slashPath = href.replace("\\", "/");
+                    uri = new URI(slashPath);
+                } catch (Exception ex) {
+                    
+                    String msg = "Invalid path :" + href +"\n prependedPath="+prependedPath + "\nversion=" + version;
+                    if (cfg.isFailOnError()){
+                        throw new JosmanException(msg, ex);    
+                    } else {
+                        LOG.warning(msg + "\n Reason:" + ex.getMessage());                        
+                        return true;
+                    }
+                    
+                }
+
+                LOG.fine("uri = " + uri);
+                LOG.fine("uri.getScheme = " + uri.getScheme());
+                LOG.fine("uri.getAuthority = " + uri.getAuthority());
+                LOG.fine("uri.getQuery = " + uri.getQuery());
+                LOG.fine("uri.getHost = " + uri.getHost());
+                LOG.fine("uri.getFragment = " + uri.getFragment());
+                
+                
+                if (href.startsWith(prependedPath + "src")) {
+                    arg0.attr("href",
+                            href.replace(prependedPath + "src",
+                                    Josmans.repoRelease(Josmans.organization(mvnPrj.getUrl()),
+                                            mvnPrj.getArtifactId(), version) + "/src"));
+                    return true;
+                }
+                
+                if (uri.getPath() != null && TodUtils.removeTrailingSlash(uri.getPath()).endsWith(".md")) {
+                    arg0.attr("href", Josmans.htmlizePath(href));
+                    return true;
+                }
+
+                if (href.startsWith(prependedPath + "../../wiki")) {
+                    arg0.attr("href", href.replace(prependedPath + "../../wiki", Josmans.repoWiki(
+                            Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId())));
+                    return true;
+                }
+
+                if (href.startsWith(prependedPath + "../../issues")) {
+                    arg0.attr("href", href.replace(prependedPath + "../../issues", Josmans.repoIssues(
+                            Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId())));
+                    return true;
+                }
+
+                if (href.startsWith(prependedPath + "../../milestones")) {
+                    arg0.attr("href",
+                            href.replace(prependedPath + "../../milestones", Josmans.repoMilestones(
+                                    Josmans.organization(mvnPrj.getUrl()), mvnPrj.getArtifactId())));
+                    return true;
+                }
+
+                if (TodUtils.removeTrailingSlash(href)
+                            .equals(DOCS_FOLDER)) {
+                    arg0.attr("href", Josmans.majorMinor(version) + "/index.html");
+                    return true;
+                }
+
+                if (href.startsWith(DOCS_FOLDER + "/")) {
+                    arg0.attr("href", Josmans.majorMinor(version) + href.substring(DOCS_FOLDER.length()));
+                    return true;
+                }
+
+                return true;
+            }
+        });
+    }
+
     /**
      * Release tags - may not have the first one if in snapshot mode and 
      * snapshot version overrides first tag of released ones. 
