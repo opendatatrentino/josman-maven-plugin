@@ -138,7 +138,7 @@ To ignore some version, you can use `ignoredVersions` like this:
 
 ### Customizing organization
 
-By default the organization is taken to be the Github organization. If you want to specify another, just use the `<organization>` tag in Maven `pom.xml`.  To use a custom logo for the organization, you can create a file named `docs/ARTIFACTID-org-200px.png` (for example `docs/josman-maven-plugin-org-200px.png`). 
+By default the organization is taken to be the Github organization. If you want to specify another, just use the `<organization>` tag in Maven `pom.xml`.  To use a custom logo for the organization, you can create a file named `docs/org-200px.png`. 
 
 ### Markdown
 
