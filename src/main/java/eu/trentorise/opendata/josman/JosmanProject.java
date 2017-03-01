@@ -780,6 +780,18 @@ public class JosmanProject {
                     return true;
                 }
                 
+                if (TodUtils.removeTrailingSlash(href)
+                            .equals(DOCS_FOLDER)) {                    
+                    arg0.attr("href", Josmans.majorMinor(version) + "/index.html");
+                    return true;
+                }
+    
+                if (href.startsWith(DOCS_FOLDER + "/")) {
+                    href = Josmans.majorMinor(version) + href.substring(DOCS_FOLDER.length());
+                    arg0.attr("href", href);
+                    // note we don't return now, we might have an .md to process
+                }                
+                
                 if (uri.getPath() != null && TodUtils.removeTrailingSlash(uri.getPath()).endsWith(".md")) {
                     arg0.attr("href", Josmans.htmlizePath(href));
                     return true;
@@ -804,16 +816,7 @@ public class JosmanProject {
                     return true;
                 }
 
-                if (TodUtils.removeTrailingSlash(href)
-                            .equals(DOCS_FOLDER)) {
-                    arg0.attr("href", Josmans.majorMinor(version) + "/index.html");
-                    return true;
-                }
-
-                if (href.startsWith(DOCS_FOLDER + "/")) {
-                    arg0.attr("href", Josmans.majorMinor(version) + href.substring(DOCS_FOLDER.length()));
-                    return true;
-                }
+            
 
                 return true;
             }
