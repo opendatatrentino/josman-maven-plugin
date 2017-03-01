@@ -582,6 +582,11 @@ public class JosmanProject {
         fixLinks(version, prependedPath, contentFromMd);
 
         fixImagePaths(version, prependedPath, contentFromMd);
+
+        if (cfg.isReleases()){
+            skeleton.$("#josman-dev-warning")
+            .css("display", "none");
+        }        
         
         skeleton.$("#josman-internal-content")
                 .html(contentFromMd.html());
