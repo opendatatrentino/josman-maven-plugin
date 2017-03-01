@@ -188,6 +188,14 @@ table, th, td {
 	max-height:80px;
 }
 
+#josman-dev-warning {
+    position: absolute;
+    top: 5px;
+    color: red;
+    right: 150px;
+    text-align: center;
+}
+
 .josman-image-link {
 
 }
