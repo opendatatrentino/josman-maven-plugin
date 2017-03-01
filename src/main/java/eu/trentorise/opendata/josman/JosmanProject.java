@@ -583,7 +583,7 @@ public class JosmanProject {
 
         fixImagePaths(version, prependedPath, contentFromMd);
 
-        if (cfg.isReleases()){
+        if (JosmanMode.release.equals(cfg.getMode())){
             skeleton.$("#josman-dev-warning")
             .css("display", "none");
         }        
