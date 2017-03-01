@@ -696,7 +696,7 @@ public class JosmanProject {
 
         try {
 
-            FileUtils.write(targetFile, skeleton.html());
+            FileUtils.write(targetFile, skeleton.html(), "UTF-8");
         } catch (Exception ex) {
             throw new JosmanIoException("Couldn't write into " + targetFile.getAbsolutePath() + "!", ex);
         }
