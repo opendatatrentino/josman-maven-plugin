@@ -12,6 +12,8 @@ http://opendatatrentino.github.io/josman-maven-plugin
 
 todo date
 
+All closed issues: https://github.com/opendatatrentino/josman-maven-plugin/milestone/1?closed=1
+
 BREAKING:
 
 - now snapshot documentation is created by default
@@ -22,7 +24,7 @@ BREAKING:
 MAJOR: 
 
 - Introduced flags for fine tuning:  `josman.snapshot`, `josman.releases`, `josman.failOnError` and `josman.javadoc`
-- introduced modalities `dev`,`ci`,`staging`, `release`  
+- introduced parameter `josman.mode` with `dev`,`ci`,`staging`, `release`  
 - merged Josman project into this one.
 - implemented `$'eval{EXPR}` and `$'evalNow{EXPR}` command
 - more resilient to missing elements in snapshot mode
@@ -44,8 +46,9 @@ OTHER:
 - fixed hashtags links not correctly generated
 - removed external links icons, put 'Github' instead of 'Repo'
 - regular underscores are now shown in `pre` tags
+- showing warning in non-release mode
 
-All closed issues: https://github.com/opendatatrentino/josman-maven-plugin/milestone/1?closed=1
+
 
 ### 0.7.0
 - using tod-super-pom 1.3.0
